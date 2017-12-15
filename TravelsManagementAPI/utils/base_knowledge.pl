@@ -1,0 +1,5 @@
+
+calculatePlan([_|T],T).
+
+    
+    
