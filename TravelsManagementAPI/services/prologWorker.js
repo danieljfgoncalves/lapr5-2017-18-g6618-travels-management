@@ -27,7 +27,7 @@ function callPredicateSingleResult(predicateName,predicateArgs){
     //swipl.assert('location(1000,1200)');
     result = swipl.call(predicateName + '(' + predicateArgs + ',R) .');
     console.log(predicateName + '(' + predicateArgs + ',R) .');
-    return result.R.tail;
+    return result.R.tail;//TODO parse these results
    
 }
 
@@ -44,10 +44,6 @@ function callPredicateMultipleResult(predicateName,predicateArgs,[result]){
         result.push(ret);
     }
 }
-
-
-
-
 
 
 /**
