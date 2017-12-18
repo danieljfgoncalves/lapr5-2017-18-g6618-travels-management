@@ -1,5 +1,0 @@
-
-calculatePlan([_|T],T).
-
-    
-    

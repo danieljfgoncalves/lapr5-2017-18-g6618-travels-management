@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="Overpass API 0.7.54.12 054bb0bb">
+<note>The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.</note>
+<meta osm_base="2017-12-08T19:45:02Z"/>
+
+
+
+<node id="314553196" lat="41.1675639" lon="-8.6437992" version="4" timestamp="2017-03-07T18:53:43Z" changeset="46660040" uid="47097" user="Josef K"/>
+
+<node id="281726627" lat="41.1674262" lon="-8.6438462" version="2" timestamp="2017-01-12T17:32:40Z" changeset="45110818" uid="4400624" user="aenariel"/>
+
+
+<node id="4604131410" lat="41.1673558" lon="-8.6438343" version="1" timestamp="2017-01-12T17:32:36Z" changeset="45110818" uid="4400624" user="aenariel"/>
+
+
+<way id="4256484" version="13" timestamp="2017-03-07T18:53:44Z" changeset="46660040" uid="47097" user="Josef K">
+    <nd ref="1111111"/>
+    <nd ref="2222222"/>
+    <nd ref="3333333"/>
+    <nd ref="4444444"/>
+    <nd ref="5555555"/>
+    <tag k="destination" v="Ponte da Arrábida;Gaia;Lisboa"/>
+</way>
+
+<relation id="1732568" version="2" timestamp="2012-06-15T17:13:32Z" changeset="11906874" uid="602999" user="rtafav2">
+	<member type="way" ref="128245297" role="to"/>
+	<member type="node" ref="1417680972" role="via"/>
+	<member type="way" ref="167487343" role="from"/>
+	<tag k="restriction" v="only_left_turn"/>
+</relation>
+</osm>
