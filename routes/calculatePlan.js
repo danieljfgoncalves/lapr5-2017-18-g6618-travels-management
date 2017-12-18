@@ -34,7 +34,7 @@ router.post('/',function(req, res, next) {
     
     else{
         res.status(404).json('No valid waypoints found in request.');
-        xmlworker.xmlToJson("../utils/xml2.xml");
+        xmlworker.xmlToJson("../utils/xml.xml");
     }
 
 });
