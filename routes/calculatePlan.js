@@ -1,9 +1,6 @@
 var express = require('express');
 var router = express.Router();
-var prologworker = require('../services/prologWorker');
-var xmlworker = require('../services/xmlWorker');
-var rootPredicateName = 'calculatePlan';
-var assertFactName = 'location';
+var planController = require('../controllers/plansController');
 
 
 /**
@@ -21,20 +18,12 @@ router.post('/',function(req, res, next) {
    
     if(waypoints)
     {
-        var parsedPrologArray='[';
-        for (var i = 0, len = waypoints.length - 1; i < len; i++){
-            parsedPrologArray+= '[' + waypoints[i].latitude + ',' + waypoints[i].longitude +'],';
-        }
-
-        parsedPrologArray+= '[' + waypoints[waypoints.length - 1].latitude + ',' + waypoints[waypoints.length - 1].longitude +']]';
-
-        result = prologworker.callPredicateSingleResult(rootPredicateName,parsedPrologArray);
+        result =  planController.calculatePlan(waypoints);
         res.status(200).json(result);
     }
-    
     else{
         res.status(404).json('No valid waypoints found in request.');
-        xmlworker.xmlToJson("../utils/xml.xml");
+        //xmlworker.xmlToJson("../utils/xml.xml");
     }
 
 });

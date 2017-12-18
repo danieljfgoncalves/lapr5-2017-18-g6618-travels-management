@@ -1,4 +1,5 @@
 var swipl = require('swipl');
+var _ = require('underscore');
 
 swipl.initialise();
 
@@ -26,13 +27,50 @@ function assertFact(factName,factArgs)
  */
 function callPredicateSingleResult(predicateName,predicateArgs){
      
-    //swipl.assert('location(1000,1200)');
     result = swipl.call(predicateName + '(' + predicateArgs + ',R) .');
     console.log(predicateName + '(' + predicateArgs + ',R) .');
-    return result.R.tail;//TODO parse these results
+    var resultHead = parsePrologOutput(result.R.head,true);
+    parsedResult = resultHead.concat(parsePrologOutput(result.R.tail,false));
+    return parsedResult;
    
 }
 
+/**
+ * Recursive method that parses list of heads and tails returned by prolog query into a flattened js array.
+ * @param {*} jsonInput An unflattened json input.
+ * @param {*} isHead A 'boolean' variable to parse initial head and tail element separatly.
+ */
+function parsePrologOutput(jsonInput,isHead)
+{
+    var output=[];
+   if(isHead)
+   {
+        output.push(jsonInput.head);
+   }
+   if(!isHead)
+   {
+    _.each(jsonInput.head,(element,index,list)=>{
+
+            if(_.isNumber(element))
+            {
+                output.push(element);
+            }
+            else{
+                output.push(element.head);
+            }
+       
+    });
+   }
+    if(jsonInput.tail != "[]"){
+
+        var localOutput = parsePrologOutput(jsonInput.tail,isHead);
+        var  final = output.concat(localOutput);
+
+        return final;
+    }
+     
+    return output;
+}
 
 /**
  * 
