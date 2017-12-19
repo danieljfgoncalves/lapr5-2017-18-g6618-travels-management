@@ -19,9 +19,16 @@
     <nd ref="3333333"/>
     <nd ref="4444444"/>
     <nd ref="5555555"/>
-    <tag k="destination" v="Ponte da Arrábida;Gaia;Lisboa"/>
+    
 </way>
-
+<way id="42256484" version="13" timestamp="2017-03-07T18:53:44Z" changeset="46660040" uid="47097" user="Josef K">
+    <nd ref="6666666"/>
+    <nd ref="7777777"/>
+    <nd ref="8888888"/>
+    <nd ref="9999999"/>
+    <nd ref="1010101"/>
+    <tag k="oneway" v="yes"/>
+</way>
 <relation id="1732568" version="2" timestamp="2012-06-15T17:13:32Z" changeset="11906874" uid="602999" user="rtafav2">
 	<member type="way" ref="128245297" role="to"/>
 	<member type="node" ref="1417680972" role="via"/>

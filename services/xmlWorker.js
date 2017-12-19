@@ -19,20 +19,33 @@ function xmlToJson(xmlFilePath)
         });
 
         _.each(parsedJson.osm.way,(elementWay,indexWay,list)=>{
-
+          console.log("===================\n");
           _.each(elementWay.nd,(element,index,list)=>{
 
             _.each(elementWay.nd,(elementNext,index2,list)=>{
 
-                if(index2 > index)
+                if(index2 > index && index2-index == 1)
                 {
-                    prologWorker.assertFact('connection(' , element.ref + ',' + elementNext.ref + ')');
-                    console.log('connection('+ element.ref + ',' + elementNext.ref + ')');
+                    if(elementWay.tag && elementWay.tag.k=="oneway" && elementWay.tag.v=="yes")
+                    {
+                       prologWorker.assertFact('connection(' , element.ref + ',' + elementNext.ref + ')');
+                       //console.log('connection('+ element.ref + ',' + elementNext.ref + ')');
+                      
+                    }
+                    else
+                    {
+                        prologWorker.assertFact('connection(' , element.ref + ',' + elementNext.ref + ')');
+                        prologWorker.assertFact('connection(' , elementNext.ref + ',' + element.ref + ')'); 
+                        //console.log('connection('+ element.ref + ',' + elementNext.ref + ')');
+                        //console.log('connection('+ elementNext.ref + ',' + element.ref + ')');     
+                    }
+                    
+                    
                 }
             });
 
           });
-
+        
         });
         
         console.log('=================================\nFacts asserted into knowledge base.\n=================================\n');
