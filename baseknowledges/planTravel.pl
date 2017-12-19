@@ -50,9 +50,13 @@
 % 
 planTravel( Departure, Pharmacies, Plan ) :-
 
-    findPharmacies(Pharmacies, PharmaciesFound, PharmaciesNotFound) ,
+    % divide pharmacies found and not found
+    findPharmacies( Pharmacies, PharmaciesFound, PharmaciesNotFound ) ,
+
+    divideByTimeRestrictions( PharmaciesFound, PharmaciesWithRestrictions, PharmaciesWithoutRestrictions ) ,
 
     ! .
+
 
 %
 % Tries to find pharmacies and divide them in
@@ -67,12 +71,58 @@ findPharmacies( [Pharmacy|Tpha], [Pharmacy|Tfound], Notfound ) :-
 findPharmacies( [Pharmacy|Tpha], Found, [Pharmacy|Tnotfound] ) :-
     findPharmacies( Tpha, Found, Tnotfound ) .
 
+
+%
+% Given a list of pharmacies, reorganize by pharmacies with and without time restrictions.
+% The pharmacies with time restriction are sorted by increasing order of time.
+%
+divideByTimeRestrictions( Pharmacies, PharmaciesWithRestrictions, PharmaciesWithoutRestrictions ) :-
+    divideByTimeRestrictions_p( Pharmacies, PharWithRest, PharmaciesWithoutRestrictions ) ,
+    sortByRestrictions(PharWithRest, PharmaciesWithRestrictions) .
+divideByTimeRestrictions_p( [], [], [] ) .
+divideByTimeRestrictions_p( [Pharmacy|Tpha], [Pharmacy|Tr], PharmaciesWithoutRestrictions ) :-
+    Pharmacy = ( _, _, _, LimitTime ) ,
+    LimitTime > 0 ,
+    divideByTimeRestrictions_p( Tpha, Tr, PharmaciesWithoutRestrictions ) ,
+    ! .
+divideByTimeRestrictions_p( [Pharmacy|Tpha], PharmaciesWithRestrictions, [Pharmacy|Tnr] ) :-
+    divideByTimeRestrictions_p( Tpha, PharmaciesWithRestrictions, Tnr ) .
+
+
+%
+% Sort pharmacies by increasing order of time restriction.
+%
+sortByRestrictions( Pharmacies, SortedPharmacies ) :-
+    sortByRestrictions( Pharmacies, [], SortedPharmacies ) ,
+    ! .
+
+sortByRestrictions( [], Acc, Acc ) .
+sortByRestrictions( [Pharmacy|T], Acc, SortedPharmacies ) :-
+    pivotingPharmacies( Pharmacy, T, L1, L2 ) ,
+    sortByRestrictions( L1, Acc, Sorted1 ) ,
+    sortByRestrictions( L2, [Pharmacy|Sorted1], SortedPharmacies ) .
+
+pivotingPharmacies( _, [], [], [] ) .
+pivotingPharmacies( Pharmacy1, [Pharmacy2|T], [Pharmacy2|L], G ) :-
+    Pharmacy1 = ( _, _, _, Time1 ) ,
+    Pharmacy2 = ( _, _, _, Time2 ) ,
+    Time1 =< Time2 ,
+    pivotingPharmacies( Pharmacy1, T, L, G ) ,
+    ! .
+pivotingPharmacies( Pharmacy1, [Pharmacy2|T], L, [Pharmacy2|G] ) :-
+    pivotingPharmacies( Pharmacy1, T, L, G ) .
+
+
+
 % ########## CONSTANTS ########## %
 
 %
 % The velocity that the supplier travels in km/h.
 %
 velocity( 50 ) .
+
+
+
 
 % ########## UTIL METHODS ########## %
 
@@ -89,6 +139,7 @@ calculateCost( (Lat1,Lon1), (Lat2,Lon2), Distance, Time) :-
     distance(Lat1, Lon1, Lat2, Lon2, Distance) ,
     timeToTravelDistance(Distance, Time) .
 
+
 %
 % Calculates how much time it takes (minutes) to
 % travel a given distance (meters).
@@ -98,6 +149,7 @@ timeToTravelDistance(Distance, Time) :-
     kmHourToMeterMinutes(Velocity, VelocityMetersPerMinutes) ,
     Time is Distance / VelocityMetersPerMinutes .
 
+
 %
 % Converts from kilometers per hour to
 % meters per minute.
@@ -106,6 +158,7 @@ timeToTravelDistance(Distance, Time) :-
 %
 kmHourToMeterMinutes(KmH, MMin) :-
     MMin is KmH * 16.6667 .
+
 
 %
 % Calculates distance in meters between two linear coordinates
@@ -121,6 +174,7 @@ distance(Lat1, Lon1, Lat2, Lon2, Dis) :-
 	C is 2 * atan2(sqrt(A), sqrt(1-A)) ,
 	Dis1 is 6371000*C ,
 	Dis is round(Dis1) .
+
 
 degrees2radians(Deg, Rad) :-
 	Rad is Deg * 0.0174532925 .
