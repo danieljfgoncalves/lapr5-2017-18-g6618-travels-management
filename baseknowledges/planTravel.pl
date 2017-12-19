@@ -1,17 +1,21 @@
 %
+% planTravel( Departure, Pharmacies, Plan ).
+% planTravel( (DepName, DepLat, DepLon, DepTime) , [(PharName, PharLat, PharLon, LimitTime) | Tpha] , Plan) .
+%
 % Calculates the travel plan to deliver medicines' parcels.
 % (The entry point)
 %
-%
 % Input (parameters):
 % 
-% Departure: The departure location, same as (DepName, DepLat, DepLon, DepTime)
+% Departure: The departure location, int the following format:
+%     Departure = (DepName, DepLat, DepLon, DepTime)
 %     DepName: The name of the departure location (and arrival)
 %     DepLat: The latitude of the departure location
 %     DepLon: The longitude of the departure location
 %     DepName: The departure time (in minutes)
 %
-% Pharmacies: The pharmacies to deliver, same as [ (PharName, PharLat, PharLon, LimitTime) | Tpha ]
+% Pharmacies: The pharmacies to deliver, in the following format:
+%     Pharmacies = [ (PharName, PharLat, PharLon, LimitTime) | Tpha ]
 %     PharName: The name of the pharmacy
 %     PharLat: The latitude of the pharmacy
 %     PharLon: The longitude of the pharmacy
@@ -20,21 +24,54 @@
 %
 % Output (return):
 %
-% Plan: The ordered list of the pharmacies to deliver, in the format:
-%     [ (DelPharName, DelPharLat, DelPharLon, DelPharTime), Tdelphar]
+% Plan: The pharmacies ordered by deliver, the waypoints ordered by arrival,
+%       and the pharmacies not visited (couldn't accomplish the restrictions):
+%       Plan = ( PharmaciesOL , WaypointsOL , PharNotVisited )
+%
+% PharmaciesOL: The ordered list of the pharmacies to deliver.
+%     PharmaciesOL = [ (DelPharName, DelPharLat, DelPharLon, DelPharTime), Tdelphar]
 %     DelPharName: The name of the pharmacy to deliver
 %     DelPharLat: The latitude of the pharmacy to deliver
 %     DelPharLon: The longitude of the pharmacy to deliver
 %     DelPharTime: The expected delivery time
 %     Tdelphar: More pharmacies to deliver, tail of the deliveries pharmacies' list (ordered)
 %
-% planTravel( Departure, Pharmacies, Plan ).
-% planTravel( (DepName, DepLat, DepLon, DepTime) , [(PharName, PharLat, PharLon, LimitTime) | Tpha] , Plan) .
+% WaypointsOL: The ordered list of the waypoints (including pharmacies points) to travel.
+%     WaypointsOL = [ (WpLat, WpLon) | Twp ]
+%     WpLat: The latitude of the point
+%     WpLon: The longitude of the point
+%     Twp: The tail with the other points
+%
+% PharNotVisited: The list of the pharmacies not visited
+%     PharNotVisited = [PharName | Tpnv]
+%     PharName: The pharmacy name
+%     Tpnv: The tail with the other pharmacies not visited
+%
+% 
+planTravel( Departure, Pharmacies, Plan ) :-
 
+    findPharmacies(Pharmacies, PharmaciesFound, PharmaciesNotFound) ,
+
+    ! .
+
+%
+% Tries to find pharmacies and divide them in
+% pharmacies found and pharmacies not found.
+%
+findPharmacies( [], [], [] ) .
+findPharmacies( [Pharmacy|Tpha], [Pharmacy|Tfound], Notfound ) :-
+    Pharmacy = (_, PharLat, PharLon, _) ,
+    location( _, (PharLat, PharLon) ) ,
+    findPharmacies( Tpha, Tfound, Notfound ) ,
+    ! .
+findPharmacies( [Pharmacy|Tpha], Found, [Pharmacy|Tnotfound] ) :-
+    findPharmacies( Tpha, Found, Tnotfound ) .
 
 % ########## CONSTANTS ########## %
 
-% The velocity that the supplier travels in km/h
+%
+% The velocity that the supplier travels in km/h.
+%
 velocity( 50 ) .
 
 % ########## UTIL METHODS ########## %
