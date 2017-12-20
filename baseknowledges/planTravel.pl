@@ -222,11 +222,11 @@ goToRestr( _, CurrPharRestr, NewPharRestr,
     % Set results
     NewPharmacy = (PharName, PharLat, PharLon, NewTime) ,
 
-    NewPharRestr is Tpr ,
-    NewPharNotRestr is CurrPharNotRestr ,
+    NewPharRestr = Tpr ,
+    NewPharNotRestr = CurrPharNotRestr ,
     append( CurrWaypoints, [PharWP], NewWaypoints ) ,
     append( CurrPharPlan, [NewPharmacy], NewPharPlan) ,
-    NewPharNotVisited is InitialPharNotVisited ,
+    NewPharNotVisited = InitialPharNotVisited ,
 
     ! .
 
@@ -395,26 +395,21 @@ goToNotRestr( _, CurrPharNotRestr, NewPharNotRestr,
 
     % Get destination point
     CurrPharNotRestr = [Hpnr|Tpnr] ,
-    Hpnr = ( PharName, PharLat, PharLon, LimitTime ) ,
+    Hpnr = ( PharName, PharLat, PharLon, _ ) ,
     PharWP = ( PharLat, PharLon ) ,
     location( IDph, PharWP ) ,
 
-    % There is time to seek and a direct connection
-    CurrTime < LimitTime ,
+    % There a direct connection
     connection( IDwp, IDph ) ,
 
-    % The new time must be sufficient to deliver
+    % Set results
     calculateCost( IDwp, IDph, _, Time ) ,
     NewTime is CurrTime + Time ,
-    NewTime =< LimitTime ,
-
-    % Set results
     NewPharmacy = (PharName, PharLat, PharLon, NewTime) ,
-
-    NewPharNotRestr is Tpnr ,
+    NewPharNotRestr = Tpnr ,
     append( CurrWaypoints, [PharWP], NewWaypoints ) ,
     append( CurrPharPlan, [NewPharmacy], NewPharPlan) ,
-    NewPharNotVisited is InitialPharNotVisited ,
+    NewPharNotVisited = InitialPharNotVisited ,
 
     ! .
 %
@@ -433,29 +428,25 @@ goToNotRestr( InitialPharNotRestr, CurrPharNotRestr, NewPharNotRestr,
 
     % Get destination point
     CurrPharNotRestr = [Hpnr|_] ,
-    Hpnr = ( _, PharLat, PharLon, LimitTime ) ,
+    Hpnr = ( _, PharLat, PharLon, _ ) ,
     PharWP = ( PharLat, PharLon ) ,
     location( IDph, PharWP ) ,
 
-    % There is enough time to seek but
-    % there is not a direct connection
-    CurrTime < LimitTime ,
+    % There is not a direct connection
     \+ connection( IDwp, IDph ) ,
 
     % Finds the closest available point
     findClosestPoint( CurrentWp, PharWP, CurrWaypoints, NextWp ) ,
 
-    % The new time must be sufficient to deliver
-    calculateCost( CurrentWp, PharWP, _, Time ) ,
-    NextTime is CurrTime + Time ,
-    NextTime =< LimitTime ,
-
-    % If so we can visit it already!
+    % Visit next Waypoint!
     comparePointToPharmaciesNotRestr( NextWp,
                                       CurrPharNotRestr, NextPharNotRestr,
                                       CurrPharPlan, NextPharPlan) ,
 
-    % Prepare data for the next call
+    % Set data for the new call
+    calculateCost( CurrentWp, PharWP, _, Time ) ,
+    NextTime is CurrTime + Time ,
+
     append(CurrWaypoints, [NextWp], NextWaypoints) ,
 
     % Recursive call
@@ -469,7 +460,7 @@ goToNotRestr( InitialPharNotRestr, CurrPharNotRestr, NewPharNotRestr,
 
 %
 % Case that cannot go to the pharmacy,
-% either because there is no time or connections to reach.
+% because there is no possible connections to reach.
 %
 % Restores initial states and moves destination pharmacy
 % to not visited list.
@@ -724,7 +715,7 @@ makeWayBack( DeparturePoint, Waypoints, NewWaypoints ) :-
     location( IDdepart, DeparturePoint) ,
 
     connection( IDcurrent, IDdepart) ,
-    append( Waypoints, DeparturePoint, NewWaypoints ) .
+    append( Waypoints, [DeparturePoint], NewWaypoints ) .
 
 makeWayBack( DeparturePoint, Waypoints, NewWaypoints ) :-
     last( Waypoints, CurrentWaypoint ) ,
