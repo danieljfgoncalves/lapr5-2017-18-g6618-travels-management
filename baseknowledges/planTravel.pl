@@ -1,11 +1,12 @@
 %
-% planTravel( Departure, Pharmacies, Plan ).
-% planTravel( (DepName, DepLat, DepLon, DepTime) , [(PharName, PharLat, PharLon, LimitTime) | Tpha] , Plan) .
-%
 % Calculates the travel plan to deliver medicines' parcels.
 % (The entry point)
 %
-% Input (parameters):
+% planTravel( Departure, Pharmacies, Plan ).
+% planTravel( (DepName, DepLat, DepLon, DepTime) , [(PharName, PharLat, PharLon, LimitTime) | Tpha] , Plan) .
+%
+%
+% Input:
 %
 % Departure: The departure location, int the following format:
 %     Departure = (DepName, DepLat, DepLon, DepTime)
@@ -21,6 +22,7 @@
 %     PharLon: The longitude of the pharmacy
 %     LimitTime: The limit time for the deliver (0 in case there is no restriction)
 %     Tpha: More pharmacies, tail of the pharmacies' list
+%
 %
 % Output (return):
 %
@@ -62,17 +64,21 @@ planTravel( Departure, Pharmacies, Plan ) :-
     Plan = ( PharmaciesOL , WaypointsOL , PharNotVisited ) ,
 
     % Adding origin to Waypoints
-    WaypointsOL = [ (DepLat,DepLon) | _ ] ,
-    % TODO go back to departure point
+    DeparturePoint = (DepLat,DepLon) ,
+    Waypoints = [ DeparturePoint ] ,
 
     % NotVisited will be filled later
     append(PharmaciesNotFound, NotVisited, PharNotVisited) ,
 
-    greedyPlan(PharmaciesWithRestrictions, PharmaciesWithoutRestrictions, WaypointsOL, PharmaciesOL, NotVisited) ,
+    greedyPlan(PharmaciesWithRestrictions, PharmaciesWithoutRestrictions,
+               Waypoints, DepTime,
+               NewWaypoints, PharmaciesOL, NotVisited) ,
 
-    % TODO make the way back to departure location
+    % make the way back to departure location (updating the waypoints)
+    makeWayBack( DeparturePoint, NewWaypoints, WaypointsOL) ,
 
     ! .
+
 
 %
 % Input (parameters):
@@ -83,38 +89,65 @@ planTravel( Departure, Pharmacies, Plan ) :-
 %
 % Output (return):
 %
-% WaypointsOL: The list of the waypoints (first one must be already filled by input)
+% Waypoints: The list of the waypoints (first one must be already filled by input)
 % ResPhar: Order list of pharmacies plan
 % ResNotVisited: Pharmacies not visited
 %
-greedyPlan( PharRestricted, PharNotRestricted, WaypointsOL, ResPhar, ResNotVisited) :-
+greedyPlan( PharRestricted, PharNotRestricted, Waypoints, InitialTime,
+            FinalWaypoints, FinalPharPlan, FinalPharNotVisited) :-
 
-    % TESTME make sure it works to receive 'half' initialized
-    WaypointsOL = [ CurrentLocation | Twp ] ,
-    CurrentLocation = (DepLat,DepLon) ,
+    processRestricted( PharRestricted, _,
+                       PharNotRestricted, NewPharNotRestr,
+                       Waypoints, NewWaypoints,
+                       InitialTime, NewTime,
+                       [], NewPharPlan,
+                       [], NewPharNotVisited) ,
 
-    % TODO complete the following predicates
-    %processRestricted( ) ,
-    %processNotRestricted( ) .
+    processNotRestricted( NewPharNotRestr, _,
+                          NewWaypoints, FinalWaypoints,
+                          NewTime, _,
+                          NewPharPlan, FinalPharPlan,
+                          NewPharNotVisited, FinalPharNotVisited ) ,
+    ! .
 
 %
 % Process the pharmacies with time restrictions
 %
-% processRestricted( PharRestricted, PharNotRestricted, CurrentWp, Waypoints, CurrentTime, ResPhar, ResNotVisited)
+% processRestricted( PharRestr, NewPharRestr,
+%                    PharNotRestricted, NewPharNotRestricted,
+%                    Waypoints, NewWaypoints,
+%                    CurrentTime, NewTime,
+%                    PharPlan, NewPharPlan,
+%                    PharNotVisited, NewPharNotVisited)
 %
-processRestricted( [], _, _, [], [], [], _, _) .
-processRestricted( PharRestricted, PharNotRestricted, CurrentWp, Waypoints, CurrentTime, ResPhar, ResNotVisited) :-
+processRestricted( [], _,
+                   PharNotRestricted, PharNotRestricted,
+                   Waypoints, Waypoints,
+                   CurrentTime, CurrentTime,
+                   PharPlan, PharPlan,
+                   PharNotVisited, PharNotVisited) .
 
-    % TODO fill params
-    %goToRestr( ) ,
+processRestricted( PharRestr, NewPharRestr,
+                   PharNotRestricted, NewPharNotRestricted,
+                   Waypoints, NewWaypoints,
+                   CurrentTime, NewTime,
+                   PharPlan, NewPharPlan,
+                   PharNotVisited, NewPharNotVisited) :-
 
-    % TODO process all data returned from goto
+    goToRestr( PharRestr, PharRestr, NextPharRestr,
+               PharNotRestricted, PharNotRestricted, NextPharNotRestricted,
+               Waypoints, Waypoints, NextWaypoints,
+               CurrentTime, CurrentTime, NextTime,
+               PharPlan, PharPlan, NextPharPlan,
+               PharNotVisited, NextPharNotVisited) ,
 
-    processRestricted( Tpr, PharNotRestricted, CurrentWp, Waypoints, CurrentTime, ResPhar, ResNotVisited ) .
-
-processRestricted( PharRestricted, PharNotRestricted, CurrentWp, Waypoints, CurrentTime, ResPhar, [Hpr|ResNotVisited] ) :-
-
-    processRestricted( Tpr, PharNotRestricted, CurrentWp, Waypoints, CurrentTime, ResPhar, ResNotVisited ) .
+    processRestricted( NextPharRestr, NewPharRestr,
+                       NextPharNotRestricted, NewPharNotRestricted,
+                       NextWaypoints, NewWaypoints,
+                       NextTime, NewTime,
+                       NextPharPlan, NewPharPlan,
+                       NextPharNotVisited, NewPharNotVisited) ,
+    ! .
 
 %
 % Tries to go from current waypoint to next pharmacy with time restriction.
@@ -277,6 +310,20 @@ goToRestr( InitialPharRestr, _, NewPharRestr,
 %                           PharNotRestr, NewPharNotRestr,
 %                           PharPlan, NewPharPlan)
 %
+% Input:
+%
+% Point
+% PharRestr
+% PharNotRestr
+% PharPlan
+%
+%
+% Output:
+%
+% NewPharRestr
+% NewPharNotRestr
+% NewPharPlan
+%
 comparePointToPharmacies( Point,
                           PharRestr, NewPharRestr,
                           PharNotRestr, PharNotRestr,
@@ -301,10 +348,25 @@ comparePointToPharmacies( _,
                           PharPlan, PharPlan) .
 
 %
+% Removes a pharmacy with a given coordinate from the pharmacies list.
+%
 % removesPharmacyByCoordinate(
 %     Coordinate,
 %     InitialPharmacies, Pharmacies,
 %     NewPharmacies, RemovedPharmacy )
+%
+%
+% Input:
+%
+% Coordinate
+% InitialPharmacies
+% Pharmacies
+%
+%
+% Output:
+%
+% NewPharmacies
+% RemovedPharmacy
 %
 removesPharmacyByCoordinate( _, InitialPharmacies, [], InitialPharmacies, 0) :-
     ! .
@@ -342,7 +404,9 @@ findClosestPoint(Orig, Dest, Visited, Point) :-
     ! .
 
 %
-% chooseClosest( Dest, [Hneig|Tneig], SmallestDistance, SmallestCoordinate, Point )
+% Choose the closest point to a given coordinate
+%
+% chooseClosest( DestPoint, Points, ClosestPoint )
 %
 chooseClosest( DestinationPoint, [Hneig|Tneig], ClosestPoint ) :-
     calculateCost( Hneig, DestinationPoint, Distance, _ ) ,
@@ -412,6 +476,45 @@ pivotingPharmacies( Pharmacy1, [Pharmacy2|T], [Pharmacy2|L], G ) :-
     ! .
 pivotingPharmacies( Pharmacy1, [Pharmacy2|T], L, [Pharmacy2|G] ) :-
     pivotingPharmacies( Pharmacy1, T, L, G ) .
+
+
+%
+% Makes the way back to the departure point.
+%
+% makeWayBack( DeparturePoint, Waypoints, NewWaypoints ).
+%
+% Input:
+%
+% DeparturePoint: The departure points, where we are trying to go back
+% Waypoints: The ordered list of waypoints visited
+%
+%
+% Output:
+%
+% NewWaypoints: The new waypoints with the way back included
+%
+makeWayBack( DeparturePoint, Waypoints, NewWaypoints ) :-
+    last( Waypoints, CurrentWaypoint ) ,
+    location( IDcurrent, CurrentWaypoint ) ,
+    location( IDdepart, DeparturePoint) ,
+
+    connection( IDcurrent, IDdepart) ,
+    append( Waypoints, DeparturePoint, NewWaypoints ) .
+
+makeWayBack( DeparturePoint, Waypoints, NewWaypoints ) :-
+    last( Waypoints, CurrentWaypoint ) ,
+    location( IDcurrent, CurrentWaypoint ) ,
+
+    findall(
+        Coordinate ,
+        ( connection(IDcurrent, IDneig), location(IDneig, Coordinate), \+ member(Coordinate, Waypoints) ),
+        Neighbors ) ,
+
+    chooseClosest( DeparturePoint, Neighbors, NextWaypoint ) ,
+    append( Waypoints, [NextWaypoint], NextWaypoints ) ,
+
+    makeWayBack( DeparturePoint, NextWaypoints, NewWaypoints) .
+
 
 
 
