@@ -53,9 +53,104 @@ planTravel( Departure, Pharmacies, Plan ) :-
     % divide pharmacies found and not found
     findPharmacies( Pharmacies, PharmaciesFound, PharmaciesNotFound ) ,
 
+    % divide pharmacies with and without time restrictions
     divideByTimeRestrictions( PharmaciesFound, PharmaciesWithRestrictions, PharmaciesWithoutRestrictions ) ,
 
+    Departure = (DepName, DepLat, DepLon, DepTime) ,
+    
+    % Compile output data
+    Plan = ( PharmaciesOL , WaypointsOL , PharNotVisited ) ,
+
+    % Adding origin to Waypoints
+    WaypointsOL = [ (DepLat,DepLon) | Twp ] ,
+    % TODO go back to departure point
+    
+    % NotVisited will be filled later
+    append(PharmaciesNotFound, NotVisited, PharNotVisited) ,
+
+    greedyPlan(PharmaciesWithRestrictions, PharmaciesWithoutRestrictions, WaypointsOL, PharmaciesOL, NotVisited) ,
+
+    % TODO make the way back to departure location
+
     ! .
+
+%
+% Input (parameters):
+%
+% PharRestricted: Ordered List of pharmacies with time restrictions
+% PharNotRestricted: Pharmacies without time restrictions
+%
+%
+% Output (return):
+%
+% WaypointsOL: The list of the waypoints (first one must be already filled by input)
+% ResPhar: Order list of pharmacies plan
+% ResNotVisited: Pharmacies not visited
+%
+greedyPlan( PharRestricted, PharNotRestricted, WaypointsOL, ResPhar, ResNotVisited) :-
+
+    % TESTME make sure it works to receive 'half' initialized
+    WaypointsOL = [ CurrentLocation | Twp ] ,
+    CurrentLocation = (DepLat,DepLon) ,
+
+    % TODO complete the following predicates
+    processRestricted( ) ,
+    processNotRestricted( ) .
+
+%
+% Process the pharmacies with time restrictions
+%
+% processRestricted( [Hpr|Tpr], PharNotRestricted, CurrentWp, Waypoints, CurrentTime, ResPhar, ResNotVisited)
+%
+processRestricted( [], _, _, [], [], []) .
+processRestricted( [Hpr|Tpr], PharNotRestricted, CurrentWp, Waypoints, CurrentTime, ResPhar, ResNotVisited) :-
+
+    % TODO fill params
+    goTo( ) ,
+
+    % TODO process all data returned from goto
+
+    processRestricted( Tpr, PharNotRestricted, CurrentWp, Waypoints, CurrentTime, ResPhar, ResNotVisited) .
+
+processRestricted( [Hpr|Tpr], PharNotRestricted, CurrentWp, Waypoints, CurrentTime, ResPhar, [Hpr|ResNotVisited] ) :-
+    
+    processRestricted( Tpr, PharNotRestricted, CurrentWp, Waypoints, CurrentTime, ResPhar, ResNotVisited) .
+
+%
+% Tries to go from current waypoint to next pharmacy with time restriction.
+%
+% goTo( PharRestricted, PharNotRestricted, CurrentWp, Waypoints, CurrentTime, NewTime, ResPhar, NewResPhar )
+%
+goTo( [Hpr|Tpr], PharNotRestricted, CurrentWp, [PharWP|Waypoints], CurrentTime, NewTime, ResPhar, NewResPhar ) :-
+
+    location(IDwp, CurrentWp) ,
+
+    Hpr = (PharName, PharLat, PharLon, LimitTime) ,
+    PharWP = (PharLat, PharLon) ,
+    location(IDph, (PharLat,PharLon) ) ,
+
+    connection(IDwp, IDph) ,
+    
+    calculateCost(ID1, ID2, Distance, Time) ,
+    Time < LimitTime ,
+
+    NewTime is CurrentTime + Time ,
+    NewResPhar = [ (PharName, PharLat, PharLon, NewTime) | ResPhar ] .
+
+goTo( [Hpr|Tpr], PharNotRestricted, CurrentWp, Waypoints, CurrentTime, NewTime, ResPhar, NewResPhar ) :-
+
+    location(IDwp, CurrentWp) ,
+
+    Hpr = (PharName, PharLat, PharLon, LimitTime) ,
+    location(IDph, (PharLat,PharLon) ) ,
+
+    connection(IDwp, IDph) ,
+    % TODO discard pharmacy (must be added to NotVisited)
+    ! .
+goTo( [Hpr|Tpr], [Hpnr|Tpnr], CurrentWp, Waypoints, CurrentTime, NewTime, ResPhar, NewResPhar) :-
+    % try find next closer pt
+    ! .
+
 
 
 %
