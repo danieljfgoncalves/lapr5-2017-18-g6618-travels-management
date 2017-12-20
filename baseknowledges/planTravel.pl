@@ -301,6 +301,231 @@ goToRestr( InitialPharRestr, _, NewPharRestr,
     append( InitialPharNotVisited, [NextPharRestr], NewPharNotVisited ) ,
     ! .
 
+
+
+
+
+
+
+%
+% Process the pharmacies with no time restrictions
+%
+% processNotRestricted( PharNotRestricted, NewPharNotRestricted,
+%                       Waypoints, NewWaypoints,
+%                       CurrentTime, NewTime,
+%                       PharPlan, NewPharPlan,
+%                       PharNotVisited, NewPharNotVisited)
+%
+processNotRestricted( [], _,
+                      Waypoints, Waypoints,
+                      CurrentTime, CurrentTime,
+                      PharPlan, PharPlan,
+                      PharNotVisited, PharNotVisited) .
+
+processNotRestricted( PharNotRestricted, NewPharNotRestricted,
+                      Waypoints, NewWaypoints,
+                      CurrentTime, NewTime,
+                      PharPlan, NewPharPlan,
+                      PharNotVisited, NewPharNotVisited) :-
+
+    goToNotRestr( PharNotRestricted, PharNotRestricted, NextPharNotRestricted,
+                  Waypoints, Waypoints, NextWaypoints,
+                  CurrentTime, CurrentTime, NextTime,
+                  PharPlan, PharPlan, NextPharPlan,
+                  PharNotVisited, NextPharNotVisited) ,
+
+    processNotRestricted( NextPharNotRestricted, NewPharNotRestricted,
+                          NextWaypoints, NewWaypoints,
+                          NextTime, NewTime,
+                          NextPharPlan, NewPharPlan,
+                          NextPharNotVisited, NewPharNotVisited) ,
+    ! .
+
+
+%
+% Tries to go from current waypoint to
+% next pharmacy with no time restriction.
+%
+% goToNotRestr( InitialPharNotRestr, CurrPharNotRestr, NewPharNotRestr,
+%               InitialWaypoints, CurrWaypoints, NewWaypoints,
+%               InitialTime, CurrTime, NewTime,
+%               InitialPharPlan, CurrPharPlan, NewPharPlan,
+%               InitialPharNotVisited, NewPharNotVisited )
+%
+%
+% Input:
+%
+% The initial states are used as 'snapshots' to restore in case
+% it won't be possible to visit target pharmacies with restrictions
+% InitialPharNotRestr
+% InitialWaypoints
+% InitialTime
+% InitialPharPlan
+% InitialPharNotVisited
+%
+% The current states are used changing over the recursive calls.
+% CurrPharNotRestr
+% CurrWaypoints
+% CurrTime
+% CurrPharPlan
+%
+%
+% Output:
+%
+% NewPharNotRestr
+% NewWaypoints
+% NewTime
+% NewPharPlan
+% NewPharNotVisited
+%
+
+%
+% Case that finds the direct connection to
+% the desirable pharmacy with a valid time.
+%
+goToNotRestr( _, CurrPharNotRestr, NewPharNotRestr,
+              _, CurrWaypoints, NewWaypoints,
+              _, CurrTime, NewTime,
+              _, CurrPharPlan, NewPharPlan,
+              InitialPharNotVisited, NewPharNotVisited ) :-
+
+    % Get current waypoint
+    last(CurrWaypoints, CurrentWp) ,
+    location(IDwp, CurrentWp) ,
+
+    % Get destination point
+    CurrPharNotRestr = [Hpnr|Tpnr] ,
+    Hpnr = ( PharName, PharLat, PharLon, LimitTime ) ,
+    PharWP = ( PharLat, PharLon ) ,
+    location( IDph, PharWP ) ,
+
+    % There is time to seek and a direct connection
+    CurrTime < LimitTime ,
+    connection( IDwp, IDph ) ,
+
+    % The new time must be sufficient to deliver
+    calculateCost( IDwp, IDph, _, Time ) ,
+    NewTime is CurrTime + Time ,
+    NewTime =< LimitTime ,
+
+    % Set results
+    NewPharmacy = (PharName, PharLat, PharLon, NewTime) ,
+
+    NewPharNotRestr is Tpnr ,
+    append( CurrWaypoints, [PharWP], NewWaypoints ) ,
+    append( CurrPharPlan, [NewPharmacy], NewPharPlan) ,
+    NewPharNotVisited is InitialPharNotVisited ,
+
+    ! .
+%
+% Case that is not direct connected,
+% but can go to a closer neighbor.
+%
+goToNotRestr( InitialPharNotRestr, CurrPharNotRestr, NewPharNotRestr,
+              InitialWaypoints, CurrWaypoints, NewWaypoints,
+              InitialTime, CurrTime, NewTime,
+              InitialPharPlan, CurrPharPlan, NewPharPlan,
+              InitialPharNotVisited, NewPharNotVisited ) :-
+
+    % Get current waypoint
+    last(CurrWaypoints, CurrentWp) ,
+    location(IDwp, CurrentWp) ,
+
+    % Get destination point
+    CurrPharNotRestr = [Hpnr|_] ,
+    Hpnr = ( _, PharLat, PharLon, LimitTime ) ,
+    PharWP = ( PharLat, PharLon ) ,
+    location( IDph, PharWP ) ,
+
+    % There is enough time to seek but
+    % there is not a direct connection
+    CurrTime < LimitTime ,
+    \+ connection( IDwp, IDph ) ,
+
+    % Finds the closest available point
+    findClosestPoint( CurrentWp, PharWP, CurrWaypoints, NextWp ) ,
+
+    % The new time must be sufficient to deliver
+    calculateCost( CurrentWp, PharWP, _, Time ) ,
+    NextTime is CurrTime + Time ,
+    NextTime =< LimitTime ,
+
+    % If so we can visit it already!
+    comparePointToPharmaciesNotRestr( NextWp,
+                                      CurrPharNotRestr, NextPharNotRestr,
+                                      CurrPharPlan, NextPharPlan) ,
+
+    % Prepare data for the next call
+    append(CurrWaypoints, [NextWp], NextWaypoints) ,
+
+    % Recursive call
+    goToNotRestr( InitialPharNotRestr, NextPharNotRestr, NewPharNotRestr,
+                  InitialWaypoints, NextWaypoints, NewWaypoints,
+                  InitialTime, NextTime, NewTime,
+                  InitialPharPlan, NextPharPlan, NewPharPlan,
+                  InitialPharNotVisited, NewPharNotVisited) ,
+
+    ! .
+
+%
+% Case that cannot go to the pharmacy,
+% either because there is no time or connections to reach.
+%
+% Restores initial states and moves destination pharmacy
+% to not visited list.
+%
+goToNotRestr( InitialPharNotRestr, _, NewPharNotRestr,
+              InitialWaypoints, _, InitialWaypoints,
+              InitialTime, _, InitialTime,
+              InitialPharPlan, _, InitialPharPlan,
+              InitialPharNotVisited, NewPharNotVisited ) :-
+
+    InitialPharNotRestr = [ NextPharNotRestr | NewPharNotRestr ] ,
+    append( InitialPharNotVisited, [NextPharNotRestr], NewPharNotVisited ) ,
+    ! .
+
+
+%
+% Checks if a given point is contained in
+% one of the plans and updates the plans.
+%
+% comparePointToPharmaciesNotRestr( Point,
+%                           PharNotRestr, NewPharNotRestr,
+%                           PharPlan, NewPharPlan)
+%
+% Input:
+%
+% Point
+% PharNotRestr
+% PharPlan
+%
+%
+% Output:
+%
+% NewPharNotRestr
+% NewPharPlan
+%
+comparePointToPharmaciesNotRestr( Point,
+                          PharNotRestr, NewPharNotRestr,
+                          PharPlan, NewPharPlan) :-
+
+    removesPharmacyByCoordinate( Point, PharNotRestr, PharNotRestr, NewPharNotRestr, PharRem ) ,
+    PharNotRestr \== NewPharNotRestr ,
+
+    append(PharPlan, [PharRem], NewPharPlan) .
+comparePointToPharmaciesNotRestr( _,
+                          PharNotRestr, PharNotRestr,
+                          PharPlan, PharPlan) .
+
+
+
+
+
+
+
+
+
+
 %
 % Checks if a given point is contained in
 % one of the plans and updates the plans.
