@@ -3,8 +3,8 @@ var _ = require('underscore');
 
 swipl.initialise();
 
-swipl.call('working_directory(_, utils)');
-swipl.call('consult(base_knowledge)');
+swipl.call('working_directory(_, baseknowledges)');
+swipl.call('consult(planTravel)');
 
 
 /**

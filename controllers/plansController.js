@@ -1,25 +1,44 @@
 var prologworker = require('../services/prologWorker');
 var xmlworker = require('../services/xmlWorker');
-var rootPredicateName = 'calculatePlan';
+var rootPredicateName = 'planTravel';
 var assertFactName = 'location';
-
 
 /**
  * Calculates a delivery plan having into account the waypoints, using prolog interface.
- * @param {*} waypoints the waypoints array
+ * @param {*} req the http request
+ * @param {*} res the http result
  */
-function calculatePlan(waypoints)
-{
-    var parsedPrologArray='[';
-    for (var i = 0, len = waypoints.length - 1; i < len; i++){
-        parsedPrologArray+= '[' + waypoints[i].latitude + ',' + waypoints[i].longitude +'],';
+calculatePlan = (req, res) => {
+
+    if (!req.body.departure) {
+        res.status(400).send({"Message":"Departure point must be specified."});
+        return;
     }
 
-    parsedPrologArray+= '[' + waypoints[waypoints.length - 1].latitude + ',' + waypoints[waypoints.length - 1].longitude +']]';
+    if (!req.body.pharmacies || req.body.pharmacies.length < 1) {
+        res.status(400).send({"Message":"Must have at least one pharmacy."});
+        return;
+    }
 
-    return prologworker.callPredicateSingleResult(rootPredicateName,parsedPrologArray);  
+    var departure = '(' + req.body.departure.name + ',' + req.body.departure.latitude +
+                    ',' + req.body.departure.longitude + ',' + req.body.departure.time +
+                    ')';
+    
+    var pharmacies = '[';
+    req.body.pharmacies.forEach( (phar, idx, array) => {
+        pharmacies += '(' + phar.name + ',' + phar.latitude +
+                      ',' + phar.longitude + ',' + phar.limitTime +
+                      ')';
+
+        pharmacies += array.length !== -1 ? ',' : ']';
+    });
+
+    parsedPrologArray = departure + ',' + pharmacies;
+    
+    result = prologworker.callPredicateSingleResult(rootPredicateName, parsedPrologArray);
+    res.status(200).json(result);
+
 }
-
 
 /**
  * Function exports.
