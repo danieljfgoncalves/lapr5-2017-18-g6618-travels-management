@@ -10,6 +10,12 @@ var assertFactName = 'location';
  */
 calculatePlan = (req, res) => {
 
+    
+    xmlworker.xmlToJson("../utils/xml.xml").then(data => {
+        
+  
+    
+    
     if (!req.body.departure) {
         res.status(400).send({"Message":"Departure point must be specified."});
         return;
@@ -30,13 +36,14 @@ calculatePlan = (req, res) => {
                       ',' + phar.longitude + ',' + phar.limitTime +
                       ')';
 
-        pharmacies += array.length !== -1 ? ',' : ']';
+        pharmacies += idx == (array.length-1) ? ']' : ',';
     });
 
     parsedPrologArray = departure + ',' + pharmacies;
     
     result = prologworker.callPredicateSingleResult(rootPredicateName, parsedPrologArray);
     res.status(200).json(result);
+    });
 
 }
 

@@ -14,7 +14,8 @@ swipl.call('consult(planTravel)');
  */
 function assertFact(factName,factArgs)
 {
-    swipl.call('assert(' + factName + factArgs +')');
+    swipl.call('assert(' + factName+').');
+  //  console.log('assert(' + factName +').');
     
 }
 
@@ -26,9 +27,9 @@ function assertFact(factName,factArgs)
  * @param {*} result  The result of the prolog call
  */
 function callPredicateSingleResult(predicateName,predicateArgs){
-     
-    result = swipl.call(predicateName + '(' + predicateArgs + ',R) .');
     console.log(predicateName + '(' + predicateArgs + ',R) .');
+    result = swipl.call(predicateName + '(' + predicateArgs + ',R) .');
+   
     var resultHead = parsePrologOutput(result.R.head,true);
     parsedResult = resultHead.concat(parsePrologOutput(result.R.tail,false));
     return parsedResult;
