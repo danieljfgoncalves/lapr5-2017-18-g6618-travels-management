@@ -27,11 +27,13 @@ function assertFact(factName,factArgs)
  * @param {*} result  The result of the prolog call
  */
 function callPredicateSingleResult(predicateName,predicateArgs){
-    console.log(predicateName + '(' + predicateArgs + ',R) .');
-    result = swipl.call(predicateName + '(' + predicateArgs + ',R) .');
-   
-    var resultHead = parsePrologOutput(result.R.head,true);
-    parsedResult = resultHead.concat(parsePrologOutput(result.R.tail,false));
+    console.log(predicateName + '(' + predicateArgs + ',(Visited,Ordered,NonVisited)) .\n\n\n\n\n');
+    result = swipl.call(predicateName + '(' + predicateArgs + ',(Visited,Ordered,NonVisited)) .');
+    var json = JSON.stringify(result.NonVisited);
+    console.log(json);
+    var resultOrdered  = parsePrologOutput(result.Ordered,true,"O");
+    var resultNonVisited = parsePrologOutput(result.NonVisited,true,"NV");
+    parsedResult = resultOrdered.concat(resultNonVisited);
     return parsedResult;
    
 }
@@ -41,12 +43,24 @@ function callPredicateSingleResult(predicateName,predicateArgs){
  * @param {*} jsonInput An unflattened json input.
  * @param {*} isHead A 'boolean' variable to parse initial head and tail element separatly.
  */
-function parsePrologOutput(jsonInput,isHead)
+function parsePrologOutput(jsonInput,isHead,whatToParse)
 {
     var output=[];
    if(isHead)
    {
-        output.push(jsonInput.head);
+       switch(whatToParse)
+       {
+           case "NV":
+                output.push(jsonInput.head.args[0]);
+                output.push(jsonInput.head.args[1].args[0]);
+                output.push(jsonInput.head.args[1].args[1].args[0]);
+                break;
+          case "O":
+                output.push(jsonInput.head.args[1]);
+                output.push(jsonInput.head.args[2]);
+                break;
+       }
+       
    }
    if(!isHead)
    {
@@ -64,15 +78,17 @@ function parsePrologOutput(jsonInput,isHead)
    }
     if(jsonInput.tail != "[]"){
 
-        var localOutput = parsePrologOutput(jsonInput.tail,isHead);
+        var localOutput = parsePrologOutput(jsonInput.tail,isHead,whatToParse);
         var  final = output.concat(localOutput);
 
         return final;
+    
     }
      
     return output;
 }
 
+ 
 /**
  * 
  *@param {*} predicateName The name of the predicate
