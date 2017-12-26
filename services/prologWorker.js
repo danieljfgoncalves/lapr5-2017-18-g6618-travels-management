@@ -24,16 +24,17 @@ function assertFact(factName,factArgs)
  * Calls a prolog predicate with given args.
  * @param {*} predicateName The name of the predicate
  * @param {*} predicateArgs  The arguments of the predicate
- * @param {*} result  The result of the prolog call
  */
 function callPredicateSingleResult(predicateName,predicateArgs){
-    console.log(predicateName + '(' + predicateArgs + ',(Visited,Ordered,NonVisited)) .\n\n\n\n\n');
+    console.log(predicateName + '(' + predicateArgs + ',(Visited,Ordered,NonVisited)) .\n\n');
     result = swipl.call(predicateName + '(' + predicateArgs + ',(Visited,Ordered,NonVisited)) .');
-    var json = JSON.stringify(result.NonVisited);
-    console.log(json);
+    //var json = JSON.stringify(result.NonVisited);
+    //console.log(json);
+    var resultVisited = parsePrologOutput(result.Visited,true,"V");
     var resultOrdered  = parsePrologOutput(result.Ordered,true,"O");
     var resultNonVisited = parsePrologOutput(result.NonVisited,true,"NV");
-    parsedResult = resultOrdered.concat(resultNonVisited);
+    parsedResult = resultVisited.concat(resultOrdered.concat(resultNonVisited));
+    //TODO: Transform parsed result in wanted json, for now its only a straight array.
     return parsedResult;
    
 }
@@ -42,6 +43,7 @@ function callPredicateSingleResult(predicateName,predicateArgs){
  * Recursive method that parses list of heads and tails returned by prolog query into a flattened js array.
  * @param {*} jsonInput An unflattened json input.
  * @param {*} isHead A 'boolean' variable to parse initial head and tail element separatly.
+ * @param {*} whatToParse A aux variable to help determine what we list is being parsed, since they take different means of parsing.
  */
 function parsePrologOutput(jsonInput,isHead,whatToParse)
 {
@@ -50,31 +52,22 @@ function parsePrologOutput(jsonInput,isHead,whatToParse)
    {
        switch(whatToParse)
        {
-           case "NV":
-                output.push(jsonInput.head.args[0]);
-                output.push(jsonInput.head.args[1].args[0]);
-                output.push(jsonInput.head.args[1].args[1].args[0]);
-                break;
-          case "O":
-                output.push(jsonInput.head.args[1]);
-                output.push(jsonInput.head.args[2]);
-                break;
+        case "V":
+            output.push(jsonInput.head.args[0]);
+            output.push(jsonInput.head.args[1].args[0]);
+            output.push(jsonInput.head.args[1].args[1].args[0]);
+            break;
+        case "NV":
+            output.push(jsonInput.head.args[0]);
+            output.push(jsonInput.head.args[1].args[0]);
+            output.push(jsonInput.head.args[1].args[1].args[0]);
+            break;
+        case "O":
+            output.push(jsonInput.head.args[0]);
+            output.push(jsonInput.head.args[1]);
+            break;
        }
        
-   }
-   if(!isHead)
-   {
-    _.each(jsonInput.head,(element,index,list)=>{
-
-            if(_.isNumber(element))
-            {
-                output.push(element);
-            }
-            else{
-                output.push(element.head);
-            }
-       
-    });
    }
     if(jsonInput.tail != "[]"){
 
