@@ -48,36 +48,37 @@ function callPredicateSingleResult(predicateName,predicateArgs){
 function parsePrologOutput(jsonInput,isHead,whatToParse)
 {
     var output=[];
-   if(isHead)
-   {
-       switch(whatToParse)
-       {
-        case "V":
-            output.push(jsonInput.head.args[0]);
-            output.push(jsonInput.head.args[1].args[0]);
-            output.push(jsonInput.head.args[1].args[1].args[0]);
-            break;
-        case "NV":
-            output.push(jsonInput.head.args[0]);
-            output.push(jsonInput.head.args[1].args[0]);
-            output.push(jsonInput.head.args[1].args[1].args[0]);
-            break;
-        case "O":
-            output.push(jsonInput.head.args[0]);
-            output.push(jsonInput.head.args[1]);
-            break;
-       }
-       
-   }
-    if(jsonInput.tail != "[]"){
+    if(whatToParse){
+        if(isHead)
+        {
+            switch(whatToParse)
+            {
+                case "V":
+                    output.push(jsonInput.head.args[0]);
+                    output.push(jsonInput.head.args[1].args[0]);
+                    output.push(jsonInput.head.args[1].args[1].args[0]);
+                    break;
+                case "NV":
+                    output.push(jsonInput.head.args[0]);
+                    output.push(jsonInput.head.args[1].args[0]);
+                    output.push(jsonInput.head.args[1].args[1].args[0]);
+                    break;
+                case "O":
+                    output.push(jsonInput.head.args[0]);
+                    output.push(jsonInput.head.args[1]);
+                    break;
+            }
+            
+        }
+        if(jsonInput.tail != "[]"){
 
-        var localOutput = parsePrologOutput(jsonInput.tail,isHead,whatToParse);
-        var  final = output.concat(localOutput);
+            var localOutput = parsePrologOutput(jsonInput.tail,isHead,whatToParse);
+            var  final = output.concat(localOutput);
 
-        return final;
-    
+            return final;
+        
+        }
     }
-     
     return output;
 }
 

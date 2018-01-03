@@ -47,6 +47,12 @@ calculatePlan = (req, res) => {
 
 }
 
+
+returnParsedPlan = (url, plan) => {
+
+}
+
+
 /**
  * Function exports.
  */
