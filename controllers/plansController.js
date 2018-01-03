@@ -42,12 +42,12 @@ calculatePlan = (req, res) => {
     
     result = prologworker.callPredicateSingleResult(rootPredicateName, parsedPrologArray);
      
-    returnParsedPlan( req.body.callbackUrl,result);
+    returnParsedPlan(req.body.url,result);
 
     if(!req.body.url)
          res.status(200).json(result);
     });
-
+    return;
 }
 
 
@@ -70,8 +70,9 @@ returnParsedPlan = (url, plan) => {
         if (error) {
             console.log({"Message":"Error while sending response. Check  the CallBack URL."});
         }
-
-        console.log({"Message":"Response sent with success."});
+        else{
+            console.log({"Message":"Response sent with success."});
+        }
     });
 }
 

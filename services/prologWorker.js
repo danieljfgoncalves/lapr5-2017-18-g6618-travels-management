@@ -26,6 +26,7 @@ function assertFact(factName,factArgs)
  * @param {*} predicateArgs  The arguments of the predicate
  */
 function callPredicateSingleResult(predicateName,predicateArgs){
+    
     var jsonObject = {};
     var keys = ['VisitedPharmacies' , 'OrderedWaypoints' , 'NonVisitedPharmacies'];
     console.log(predicateName + '(' + predicateArgs + ',(Visited,Ordered,NonVisited)) .\n\n');
