@@ -26,6 +26,8 @@ function assertFact(factName,factArgs)
  * @param {*} predicateArgs  The arguments of the predicate
  */
 function callPredicateSingleResult(predicateName,predicateArgs){
+    var jsonObject = {};
+    var keys = ['Visited Pharmacies','Ordered Pharmacies','Non visited Pharmacies'];
     console.log(predicateName + '(' + predicateArgs + ',(Visited,Ordered,NonVisited)) .\n\n');
     result = swipl.call(predicateName + '(' + predicateArgs + ',(Visited,Ordered,NonVisited)) .');
     //var json = JSON.stringify(result.NonVisited);
@@ -33,9 +35,12 @@ function callPredicateSingleResult(predicateName,predicateArgs){
     var resultVisited = parsePrologOutput(result.Visited,true,"V");
     var resultOrdered  = parsePrologOutput(result.Ordered,true,"O");
     var resultNonVisited = parsePrologOutput(result.NonVisited,true,"NV");
-    parsedResult = resultVisited.concat(resultOrdered.concat(resultNonVisited));
-    //TODO: Transform parsed result in wanted json, for now its only a straight array.
-    return parsedResult;
+   
+    jsonObject[keys[0]] = resultVisited;
+    jsonObject[keys[1]] = resultOrdered;
+    jsonObject[keys[2]]= resultNonVisited;
+
+    return jsonObject;
    
 }
 
@@ -50,6 +55,7 @@ function parsePrologOutput(jsonInput,isHead,whatToParse)
     var output=[];
    if(isHead)
    {
+       //some json inputs can have undefined args, we need to discard these.
        try{
             switch(whatToParse)
             {
