@@ -48,9 +48,9 @@ function callPredicateSingleResult(predicateName,predicateArgs){
 function parsePrologOutput(jsonInput,isHead,whatToParse)
 {
     var output=[];
-    if(whatToParse){
-        if(isHead)
-        {
+   if(isHead)
+   {
+       try{
             switch(whatToParse)
             {
                 case "V":
@@ -68,17 +68,22 @@ function parsePrologOutput(jsonInput,isHead,whatToParse)
                     output.push(jsonInput.head.args[1]);
                     break;
             }
-            
         }
-        if(jsonInput.tail != "[]"){
-
-            var localOutput = parsePrologOutput(jsonInput.tail,isHead,whatToParse);
-            var  final = output.concat(localOutput);
-
-            return final;
-        
+        catch(e)
+        {
+            return output;
         }
+       
+   }
+    if(jsonInput.tail != "[]"){
+
+        var localOutput = parsePrologOutput(jsonInput.tail,isHead,whatToParse);
+        var  final = output.concat(localOutput);
+
+        return final;
+    
     }
+     
     return output;
 }
 
