@@ -27,7 +27,7 @@ function assertFact(factName,factArgs)
  */
 function callPredicateSingleResult(predicateName,predicateArgs){
     var jsonObject = {};
-    var keys = ['Visited Pharmacies','Ordered Pharmacies','Non visited Pharmacies'];
+    var keys = ['VisitedPharmacies' , 'OrderedWaypoints' , 'NonVisitedPharmacies'];
     console.log(predicateName + '(' + predicateArgs + ',(Visited,Ordered,NonVisited)) .\n\n');
     result = swipl.call(predicateName + '(' + predicateArgs + ',(Visited,Ordered,NonVisited)) .');
     //var json = JSON.stringify(result.NonVisited);
@@ -52,10 +52,10 @@ function callPredicateSingleResult(predicateName,predicateArgs){
  */
 function parsePrologOutput(jsonInput,isHead,whatToParse)
 {
-    var output=[];
+   var output=[];
    if(isHead)
    {
-       //some json inputs can have undefined args, we need to discard these.
+       //Some json inputs can have undefined args, we need to discard these.
        try{
             switch(whatToParse)
             {
