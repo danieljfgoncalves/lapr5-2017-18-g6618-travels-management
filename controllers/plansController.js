@@ -41,12 +41,14 @@ calculatePlan = (req, res) => {
     parsedPrologArray = departure + ',' + pharmacies;
     
     result = prologworker.callPredicateSingleResult(rootPredicateName, parsedPrologArray);
-     
-    returnParsedPlan(req.body.url,result);
-
     if(!req.body.url)
-         res.status(200).json(result);
+        res.status(200).json(result);
+    else
+        returnParsedPlan(req.body.url,result);
+        
+       
     });
+
     return;
 }
 
