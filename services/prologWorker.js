@@ -3,8 +3,8 @@ var _ = require('underscore');
 
 swipl.initialise();
 
-swipl.call('working_directory(_, utils)');
-swipl.call('consult(base_knowledge)');
+swipl.call('working_directory(_, baseknowledges)');
+swipl.call('consult(planTravel)');
 
 
 /**
@@ -14,7 +14,8 @@ swipl.call('consult(base_knowledge)');
  */
 function assertFact(factName,factArgs)
 {
-    swipl.call('assert(' + factName + factArgs +')');
+    swipl.call('assert(' + factName+').');
+  //  console.log('assert(' + factName +').');
     
 }
 
@@ -23,15 +24,24 @@ function assertFact(factName,factArgs)
  * Calls a prolog predicate with given args.
  * @param {*} predicateName The name of the predicate
  * @param {*} predicateArgs  The arguments of the predicate
- * @param {*} result  The result of the prolog call
  */
 function callPredicateSingleResult(predicateName,predicateArgs){
-     
-    result = swipl.call(predicateName + '(' + predicateArgs + ',R) .');
-    console.log(predicateName + '(' + predicateArgs + ',R) .');
-    var resultHead = parsePrologOutput(result.R.head,true);
-    parsedResult = resultHead.concat(parsePrologOutput(result.R.tail,false));
-    return parsedResult;
+    
+    var jsonObject = {};
+    var keys = ['VisitedPharmacies' , 'OrderedWaypoints' , 'NonVisitedPharmacies'];
+    console.log(predicateName + '(' + predicateArgs + ',(Visited,Ordered,NonVisited)) .\n\n');
+    result = swipl.call(predicateName + '(' + predicateArgs + ',(Visited,Ordered,NonVisited)) .');
+    //var json = JSON.stringify(result.NonVisited);
+    //console.log(json);
+    var resultVisited = parsePrologOutput(result.Visited,true,"V");
+    var resultOrdered  = parsePrologOutput(result.Ordered,true,"O");
+    var resultNonVisited = parsePrologOutput(result.NonVisited,true,"NV");
+   
+    jsonObject[keys[0]] = resultVisited;
+    jsonObject[keys[1]] = resultOrdered;
+    jsonObject[keys[2]]= resultNonVisited;
+
+    return jsonObject;
    
 }
 
@@ -39,39 +49,52 @@ function callPredicateSingleResult(predicateName,predicateArgs){
  * Recursive method that parses list of heads and tails returned by prolog query into a flattened js array.
  * @param {*} jsonInput An unflattened json input.
  * @param {*} isHead A 'boolean' variable to parse initial head and tail element separatly.
+ * @param {*} whatToParse A aux variable to help determine what we list is being parsed, since they take different means of parsing.
  */
-function parsePrologOutput(jsonInput,isHead)
+function parsePrologOutput(jsonInput,isHead,whatToParse)
 {
-    var output=[];
+   var output=[];
    if(isHead)
    {
-        output.push(jsonInput.head);
-   }
-   if(!isHead)
-   {
-    _.each(jsonInput.head,(element,index,list)=>{
-
-            if(_.isNumber(element))
+       //Some json inputs can have undefined args, we need to discard these.
+       try{
+            switch(whatToParse)
             {
-                output.push(element);
+                case "V":
+                    output.push(jsonInput.head.args[0]);
+                    output.push(jsonInput.head.args[1].args[0]);
+                    output.push(jsonInput.head.args[1].args[1].args[0]);
+                    break;
+                case "NV":
+                    output.push(jsonInput.head.args[0]);
+                    output.push(jsonInput.head.args[1].args[0]);
+                    output.push(jsonInput.head.args[1].args[1].args[0]);
+                    break;
+                case "O":
+                    output.push(jsonInput.head.args[0]);
+                    output.push(jsonInput.head.args[1]);
+                    break;
             }
-            else{
-                output.push(element.head);
-            }
+        }
+        catch(e)
+        {
+            return output;
+        }
        
-    });
    }
     if(jsonInput.tail != "[]"){
 
-        var localOutput = parsePrologOutput(jsonInput.tail,isHead);
+        var localOutput = parsePrologOutput(jsonInput.tail,isHead,whatToParse);
         var  final = output.concat(localOutput);
 
         return final;
+    
     }
      
     return output;
 }
 
+ 
 /**
  * 
  *@param {*} predicateName The name of the predicate
