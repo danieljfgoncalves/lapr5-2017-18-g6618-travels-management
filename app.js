@@ -1,18 +1,22 @@
 var express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
-var logger = require('morgan');
+//var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var xmlworker = require('./services/xmlWorker');
-const logger = require('./logger'); // custom logger to db
-const morgan = require('morgan');
+var logger = require('./logger'); // custom logger to db
+var morgan = require('morgan');
 
 var index = require('./routes/index');
 var users = require('./routes/users');
 var calculatePlan = require('./routes/calculatePlan');
 var app = express();
 var swipl = require('swipl');
+  // *** LOGGING *** //
+app.use(logger);
+app.use(morgan('dev'));
+console.log(app.get('env'));
 xmlworker.xmlToPl("./utils/map.xml","./baseknowledges/map.pl").then(()=>{
   swipl.initialise();
   swipl.call('working_directory(_, baseknowledges)');
@@ -23,7 +27,7 @@ xmlworker.xmlToPl("./utils/map.xml","./baseknowledges/map.pl").then(()=>{
 
   // uncomment after placing your favicon in /public
   //app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
-  app.use(logger('dev'));
+  //app.use(logger('dev'));
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({ extended: false }));
   app.use(cookieParser());
@@ -33,9 +37,7 @@ xmlworker.xmlToPl("./utils/map.xml","./baseknowledges/map.pl").then(()=>{
   app.use('/users', users);
   app.use('/calculatePlan',calculatePlan);
 
-  // *** LOGGING *** //
-  if (app.get('env') != 'test') app.use(logger);
-  if (app.get('env') == 'development') app.use(morgan('dev'));
+
 
   // catch 404 and forward to error handler
   app.use(function(req, res, next) {
