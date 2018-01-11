@@ -1,10 +1,9 @@
 % ########## DYNAMIC FACTS ########## %
 % Imports random lib
 :- use_module(library(random)).
-% Consults mockData
-% FIXME: remove after testing
-:- consult(mockData2).
-% directions(Orig, Dest, Route, Distance)
+% Consults mapData
+:- consult(map).
+% directions(Orig, Dest%:- (consult(mockData2))., Route, Distance)
 :- (dynamic directions/4).
 % departure(ID, Name, (Lat,Lon),Time)
 :- (dynamic departure/4).
@@ -25,16 +24,18 @@
 velocity(50).
 % Algorithm search limit
 search_limit(2000).
+% Morning/Afternoon Separation (Hour of day)
+shift_change(12).
 
 % ---- GENETIC ALGORITHM ---- %
 % Starting Population
 population(20).
 % # of generations
-generations(500).
+generations(1000).
 % Crossing Probability
-crossing_prob(0.6).
+crossing_prob(0.3).
 % Mutation Probability
-mutation_prob(0.02).
+mutation_prob(0.04).
 
 % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ %
 
@@ -49,47 +50,49 @@ mutation_prob(0.02).
 % Departure = ( DepName, DepLat, DepLon, DepTime )
 % Pharmacies = [ (PharName, PharLat, PharLon, TimeWindow) | T ]
 %
-planTravel( Departure, Pharmacies, Plan ) :-
+planTravel(Departure, Pharmacies, Plan) :-
     assert_departure(Departure),
     assert_pharmacies(Pharmacies, NotFound),
-    genetic_algorithm(PharmacyIDsRoute, TotalDistance, UnvisitedIDs),
+    genetic_algorithm(PharmacyIDsRoute, TotalDistance),
     route_with_waypoints(PharmacyIDsRoute, WaypointIDs),
-    route_output(PharmacyIDsRoute,Route),
-    waypoints_output(WaypointIDs,Waypoints),
-    unvisited_output(UnvisitedIDs,Unvisited1),
-    append(Unvisited1,NotFound,Unvisited),!,
-    Plan=(TotalDistance,Route,Waypoints,Unvisited).
+    route_output(PharmacyIDsRoute, Route),
+    waypoints_output(WaypointIDs, Waypoints),
+    notfound_output(NotFound,NotFound1),
+    Plan=(TotalDistance, Route, Waypoints, NotFound1),!.
+
+
+%Treat not found output
+notfound_output(NotFound, New) :-
+    notfound_output2(NotFound,[],New).
+notfound_output2([],List,List):-!.
+notfound_output2([Pharm|Other], Aux, List) :-
+    Pharm=(Name, (Lat, Lon), Time),
+    Output=(Name, Lat, Lon, Time),
+    append(Aux, [Output], Aux2),
+    notfound_output2(Other, Aux2, List), !.
+
 
 % Build Plan Output
 route_output(IDs,List):-
-    IDs=[DepID,FirstID|Others],
-    departure(DepID,DepName,(DepLat,DepLon),StartTime),
+    IDs=[DepID|Others],
+    departure(DepID,DepName,(DepLat,DepLon),_),
     append(Others1,[DepID],Others),
-    Orig=(DepName,DepLat,DepLon,StartTime),
-    directions(DepID,_FirstID,_,Dist),
-    travel_time(Dist,Time1),
-    Time is StartTime+Time1,
-    pharmacies_output2([FirstID|Others1],Time,[],Last,TotalTime,List1),
+    Orig=(DepName,DepLat,DepLon,0),
+    pharmacies_output2(Others1,[],List1),
     append([Orig],List1,List2),
-    directions(Last,DepID,_,Dist2),
-    travel_time(Dist2,Time2),
-    Time3 is TotalTime + Time2,
-    append(List2,[(DepName,DepLat,DepLon,Time3)],List),!.
-pharmacies_output2([ID|[]],Time,Aux,ID,Time,List):-
-    pharmacy(ID,Name,Coord,_),
+    append(List2,[(DepName,DepLat,DepLon,1)],List),!.
+pharmacies_output2([ID|[]],Aux,List):-
+    pharmacy(ID,Name,Coord,Shift),
     Coord=(Lat,Lon),
-    Output=(Name,Lat,Lon,Time),
+    Output=(Name,Lat,Lon,Shift),
     append(Aux,[Output],List1),
     List=List1.
-pharmacies_output2([ID,ID2|Other],Time, Aux,LastID,TotalTime, List) :-
-    pharmacy(ID,Name,Coord,_),
+pharmacies_output2([ID,ID2|Other], Aux, List) :-
+    pharmacy(ID,Name,Coord,Shift),
     Coord=(Lat,Lon),
-    directions(ID,ID2,_,Dist),
-    travel_time(Dist,Time1),
-    Time2 is Time + Time1,
-    Output=(Name,Lat,Lon,Time),
+    Output=(Name,Lat,Lon,Shift),
     append(Aux,[Output],Aux2),
-    pharmacies_output2([ID2|Other],Time2,Aux2,LastID,TotalTime,List),! .
+    pharmacies_output2([ID2|Other],Aux2,List),! .
 
 waypoints_output(IDs,List):-
     waypoints_output2(IDs,[],List).
@@ -98,16 +101,6 @@ waypoints_output2([ID|Other],Aux,List) :-
     location(ID,Output),
     append(Aux,[Output],Aux2),
     waypoints_output2(Other,Aux2,List),!.
-
-unvisited_output(IDs,List):-
-    unvisited_output2(IDs,[],List).
-unvisited_output2([],List,List):-!.
-unvisited_output2([ID|Other],Aux,List) :-
-    pharmacy(ID,Name,Coord,TimeWindow),
-    Coord=(Lat,Lon),
-    Output=(Name,Lat,Lon, TimeWindow),
-    append(Aux,[Output],Aux2),
-    unvisited_output2(Other,Aux2,List),!.
 
 % Check & assert departure location
 assert_departure(Dep) :-
@@ -124,14 +117,26 @@ assert_pharmacies2([], []) :- !.
 assert_pharmacies2([Pharmacy|T], NotFound) :-
     Pharmacy=(Name, (Lat, Lon), Time),
     location(ID,  (Lat, Lon)),
-    assertz(pharmacy(ID, Name,  (Lat, Lon), Time)),
+    decide_shift(Time, Shift),
+    assertz(pharmacy(ID, Name,  (Lat, Lon), Shift)),
     assert_pharmacies2(T, NotFound), !.
 assert_pharmacies2([Pharmacy|T], [Pharmacy|NotFound]) :-
     assert_pharmacies2(T, NotFound).
 
+% Decides the shift of delivery.
+decide_shift(TimeWindow, Shift) :-
+    shift_change(SC1),
+    SC is SC1*60,
+    (
+        TimeWindow < SC,!,
+        Shift is 0
+        ;
+        Shift is 1
+    ).
+
 % Counts all pharmacy facts
 count_pharmacies(Num) :-
-    findall(X, pharmacy(X, _, _, _), PL),
+    findall(X, pharmacy(X,_,_,_), PL),
     length(PL, Num).
 
 % Add waypoints to route
@@ -149,21 +154,21 @@ route_with_waypoints2([H1, H2|T], R1, Route) :-
 % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ %
 
 % ########## GENETIC ALGORITHM ########## %
-genetic_algorithm(Route, Distance, Unvisited) :-
+genetic_algorithm(Route, Distance) :-
     count_pharmacies(N),
     retractall(pharmacies(_)),
     assert(pharmacies(N)),
     generate_pop(Pop),
     evaluate_pop(Pop, PopEv),
     sort(PopEv, PopOrd),
-    fit_selection(PopOrd, FitPop),
+    fit_selection(PopOrd,FitPop),
     generations(NG),
     generate_gen(NG, FitPop, Best),
-    Best=_-Route1,
-    departure(Dep, _, _, _),
-    split(Route1,'*',Visited,Unvisited),
-    append([Dep|Visited], [Dep], Route),
-    calculate_route_distance(Route, Distance), !.
+    Best=_*RouteAux,
+    delete(RouteAux,'*',Route1),
+    departure(Dep,_,_,_),
+    append([Dep|Route1], [Dep], Route),
+    calculate_route_distance(Route,Distance), !.
 
 % Generate population of individuals (random solutions)
 generate_pop(Pop) :-
@@ -171,46 +176,66 @@ generate_pop(Pop) :-
     % ########## Generate 1Ind from the greedy heuristic ########## %
     greedy_individual(GreedyInd),
     % ########## Generate 1Ind from the greedy heuristic ########## %
-    findall(Pharmacy, pharmacy(Pharmacy, _, _, _), PharmacyList),
-    generate_pop2(SizePop-1, PharmacyList, Pop1),
-    append(Pop1, [GreedyInd], Pop),
-    !.
-generate_pop2(0, _, []) :- !.
-generate_pop2(SizePop, PharmacyList, [Ind|Others]) :-
+    findall(Pharmacy, pharmacy(Pharmacy,_,_,0), MorningList),
+    findall(Pharmacy, pharmacy(Pharmacy,_,_,1), AfternoonList),
+    generate_pop2(SizePop-1, MorningList, AfternoonList, Pop1),
+    append(Pop1,[GreedyInd],Pop),!.
+generate_pop2(0, _,_, []) :- !.
+generate_pop2(SizePop, MorningList, AfternoonList, [Ind|Others]) :-
     SizePop1 is SizePop-1,
-    generate_pop2(SizePop1, PharmacyList, Others),
+    generate_pop2(SizePop1, MorningList, AfternoonList, Others),
     repeat,
-    generate_ind(PharmacyList, Ind),
+    generate_ind(MorningList, AfternoonList, Ind),
     \+ member(Ind, Others).
-generate_ind(PharmacyList, Ind) :-
-    random_permutation(PharmacyList, Ind).
+generate_ind(MorningList, AfternoonList, Ind) :-
+    random_permutation(MorningList, Ind1),
+    random_permutation(AfternoonList, Ind2),
+    append(Ind1,['*'],Ind3),
+    append(Ind3, Ind2, Ind).
 % Greedy individual (solution)
 greedy_individual(Ind) :-
     count_pharmacies(CAux),
     Count is CAux+1,
-    departure(Orig, _, _, _),
-    greedy_tsp2(Count, Orig,  (0, [Orig]), [_|Ind], _).
+    departure(Orig,_,_,_),
+    greedy_tsp2(Count, Orig,  (0, [Orig]), [_|Ind1], _),
+    separate_route_shifts(Ind1,'*',Ind).
+
+separate_route_shifts(Route,Sep,New):-
+    append(M,A,Route),
+    A=[First|_],
+    pharmacy(First,_,_,1),!,
+    append(M,[Sep],Route1),
+    append(Route1,A,New).
 
 % Crossover
 crossover([], []).
-crossover([_-Ind], [Ind]).
-crossover([_-Ind1, _-Ind2|Other], [NInd1, NInd2|Other1]) :-
-    delete(Ind1,'*',IndAux1),
-    delete(Ind2,'*',IndAux2),
-    generate_cutpoints(P1, P2),
+crossover([_*Ind], [Ind]).
+crossover([_*Ind1, _*Ind2|Other], [NInd1, NInd2|Other1]) :-
+    split(Ind1, '*', Ind1M, Ind1A),
+    split(Ind2, '*', Ind2M, Ind2A),
+    findall(0, pharmacy(_, _, _, 0), MorningList),
+    length(MorningList,NM),
+    pharmacies(TP),
+    NA is TP - NM,
+    generate_cutpoints(P1M, P2M, NM),
+    generate_cutpoints(P1A, P2A, NA),
     crossing_prob(Pcross),
     (   maybe(Pcross), !,
-        cross(IndAux1, IndAux2, P1, P2, NInd1),
-        cross(IndAux2, IndAux1, P1, P2, NInd2)
-        ;
-        NInd1=IndAux1,
-        NInd2=IndAux2
+        cross(Ind1M, Ind2M, P1M, P2M, NM, NInd1M),
+        cross(Ind1A, Ind2A, P1A, P2A, NA, NInd1A),
+        cross(Ind2M, Ind1M, P1M, P2M, NM, NInd2M),
+        cross(Ind2A, Ind1A, P1A, P2A, NA, NInd2A),
+        append(NInd1M,['*'],NInd1M1),
+        append(NInd1M1,NInd1A,NInd1),
+        append(NInd2M,['*'],NInd2M1),
+        append(NInd2M1,NInd2A,NInd2)
+    ;   NInd1=Ind1,
+        NInd2=Ind2
     ),
     crossover(Other, Other1).
 % crossover utility function [ ordered crossover ]
-cross(Ind1, Ind2, P1, P2, NInd1) :-
+cross(Ind1, Ind2, P1, P2, NumT, NInd1) :-
     sublist(Ind1, P1, P2, Sub1),
-    pharmacies(NumT),
     R is NumT-P2-1,
     rotate_right(Ind2, R, Ind21),
     delete_elements(Ind21, Sub1, Sub2),
@@ -220,14 +245,19 @@ cross(Ind1, Ind2, P1, P2, NInd1) :-
 % Mutation [ Swap Mutation ]
 mutation([], []).
 mutation([Ind|Rest], [NInd|Rest1]) :-
+    split(Ind, '*', IndM, IndA),
     mutation_prob(Pmut),
     (   maybe(Pmut), !,
-        mutation1(Ind, NInd)
+        mutation1(IndM, NIndM),
+        mutation1(IndA, NIndA),
+        append(NIndM,['*'],NIndM1),
+        append(NIndM1,NIndA,NInd)
     ;   NInd=Ind
     ),
     mutation(Rest, Rest1).
 mutation1(Ind, NInd) :-
-    random_indexes(P1, P2),
+    length(Ind,NP),
+    random_indexes(P1, P2, NP),
     mutation2(Ind, P1, P2, NInd).
 mutation2([G1|Ind], 1, P2, [G2|NInd]) :- !,
     P21 is P2-1,
@@ -243,42 +273,15 @@ mutation3(G1, P, [G|Ind], G2, [G|NInd]) :-
 
 % Evaluate population
 evaluate_pop([], []).
-evaluate_pop([Ind|Other], [(U-D)-NInd|Other1]) :-
-    eval(Ind, NInd, D, U),
+evaluate_pop([Ind|Other], [D*Ind|Other1]) :-
+    delete(Ind,'*',Ind1),
+    eval(Ind1, D),
     evaluate_pop(Other, Other1).
-eval(Ind, NInd, D, U) :-
-    departure(Dep, _, _, _),
-    append([Dep|Ind], [Dep], Ind1),
-    validate(Ind1, Visited, Unvisited),
-    append(Visited, [Dep], Ind2),
-    estimate_route_distance(Ind2, D),
-    % calculate_route_distance(Ind2, D),
-    length(Unvisited, U),
-    Visited=[_|Visited1],
-    append(Visited1, [*], NInd1),
-    append(NInd1, Unvisited, NInd), !.
-eval(Ind,Ind,'NA', 'NA').
-
-% validate solution with time restrictions
-validate(Route, Visited, Unvisited) :-
-    departure(Orig, _, _, Start),
-    validate2(Orig, Start, Route, [Orig], [], Unvisited, Visited), !.
-validate2(Orig, _, [_, Orig|_], New, Unvisited, Unvisited, New) :- !.
-validate2(Orig, CurrTime, [A, B|Others], RAux, UAux, Unvisited, New) :-
-    calculate_distance(A, B, Dist),
-    travel_time(Dist, Time1),
-    Time is CurrTime+Time1,
-    pharmacy(B, _, _, TimeWindow),
-    (   TimeWindow>Time,
-        append(RAux, [B], RAux2),
-        UAux2=UAux,
-        NewTime is Time, !
-    ;   append(UAux, [B], UAux2),
-        RAux2=RAux,
-        NewTime is CurrTime
-    ),
-    append([B], Others, Route),
-    validate2(Orig, NewTime, Route, RAux2, UAux2, Unvisited, New), !.
+eval(Route, D) :-
+    departure(Dep,_,_,_),
+    append([Dep|Route], [Dep], Route1),
+    estimate_route_distance(Route1, D), !.
+eval(_, 'NA').
 
 % Generate generations (iterations)
 generate_gen(0, [Best|_], Best) :- !.
@@ -288,13 +291,12 @@ generate_gen(G, Pop, Best) :-
     evaluate_pop(NPop, NPopEv),
     append(Pop, NPopEv, New),
     sort(New, NPopEvOrd),
-    fit_selection(NPopEvOrd, FitPop),
+    fit_selection(NPopEvOrd,FitPop),
     G1 is G-1,
     generate_gen(G1, FitPop, Best).
 
 % Generates random cutpoints for individual
-generate_cutpoints(P1, P2) :-
-    pharmacies(NP),
+generate_cutpoints(P1, P2, NP) :-
     mod(NP, 2, Mod),
     Alt is abs(Mod-1),
     Max1 is NP div 2,
@@ -302,41 +304,38 @@ generate_cutpoints(P1, P2) :-
     P2 is P1+NP div 2-Alt.
 
 % Generates random indexes for individual genes
-random_indexes(P1, P2) :-
-    pharmacies(NP1),
-    NP is NP1,
+random_indexes(P1, P2, NP) :-
     repeat,
     random_between(1, NP, P1),
     random_between(1, NP, P2),
     P1<P2, !.
 
 % Select the N Fittest Population Only.
-fit_selection(OrdPop, FitPop) :-
+fit_selection(OrdPop,FitPop) :-
     population(Size),
-    sublist(OrdPop, 0, Size-1, FitPop).
+    sublist(OrdPop,0,Size-1,FitPop).
 
 % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ %
 
 % ########## GREEDY ALGORITHM ########## %
 
 % Greedy TSP [Based on bestFS with no estimation]
-greedy_tsp(Route, Distance, Unvisited) :-
+greedy_tsp(Route, Distance) :-
     count_pharmacies(CAux),
     Count is CAux+1,
-    departure(Orig, _, _, _),
+    departure(Orig,_,_,_),
     greedy_tsp2(Count, Orig,  (0, [Orig]), Route1, _),
-    append(Route1,[Orig],Route2),
-    validate(Route2, Visited, Unvisited),
-    append(Visited, [Orig], Route),
-    calculate_route_distance(Route, Distance), !.
+    append(Route1,[Orig],Route),
+    calculate_route_distance(Route,Distance),
+    !.
 greedy_tsp2(Count, _,  (Distance, LAux), Route, Distance) :-
     length(LAux, CountAux),
     Count=CountAux, !,
     reverse(LAux, Route).
 greedy_tsp2(Count, Orig,  (Da, LAux), Route, Distance) :-
     LAux=[Curr|_],
-    findall((TimeX,DaX, [X|LAux]),
-            ( pharmacy(X, _, _, TimeX),
+    findall((Shift,DaX, [X|LAux]),
+            ( pharmacy(X,_,_,Shift),
               \+ member(X, LAux),
               calculate_distance(Curr, X, DX),
               DaX is DX+Da
@@ -345,7 +344,6 @@ greedy_tsp2(Count, Orig,  (Da, LAux), Route, Distance) :-
     sort(New, OrdNew),
     OrdNew=[(_,DBetter, Better)|_],
     greedy_tsp2(Count, Orig,  (DBetter, Better), Route, Distance).
-
 
 % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ %
 
@@ -363,7 +361,7 @@ a_star2(It, Dest, [(_, DAux, [H|T])|_], Route, Distance) :-
     SL=It,
     calculate_distance(H, Dest, DAux2),
     Distance is DAux+DAux2,
-    reverse([Dest, H|T], Route), !.
+    reverse([Dest|[H|T]], Route), !.
 % main a* search loop
 a_star2(C, Dest, [(_, DAux, LAux)|Others], Route, Distance) :-
     LAux=[Curr|_],
@@ -373,7 +371,7 @@ a_star2(C, Dest, [(_, DAux, LAux)|Others], Route, Distance) :-
               \+ member(X, LAux),
               calculate_distance(Curr, X, DistX),
               DaX is DistX+DAux,
-            % euclidean_heuristic(X, Dest, EstX), % [ optional heuristic ]
+            % euclidean_heuristic(X, Dest, EstX), [ optional heuristic ]
               calculate_distance(X, Dest, EstX),
               DeX is DaX+EstX
             ),
@@ -385,11 +383,7 @@ a_star2(C, Dest, [(_, DAux, LAux)|Others], Route, Distance) :-
 % in case algorithm enters a loop on the map, applies estimation to destination
 a_star2(_, Dest, [(_, DAux, LAux)|Others], Route, Distance) :-
     search_limit(SL),
-    a_star2(SL,
-            Dest,
-            [(_, DAux, LAux)|Others],
-            Route,
-            Distance).
+    a_star2(SL, Dest, [(_, DAux, LAux)|Others], Route, Distance).
 
 % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ %
 
@@ -423,7 +417,7 @@ calc_route_dist2([A, B|Others], DAux, Distance) :-
 
 % Consult shortest path [distance & directions] between nodes or calculate path.
 shortest_route(Orig, Dest, Route) :-
-    directions(Orig, Dest, Route, _), !.
+    directions(Orig, Dest, Route, _),!.
 shortest_route(Orig, Dest, Distance) :-
     a_star(Orig, Dest, Route, Distance),
     assertz(directions(Orig, Dest, Route, Distance)).
@@ -454,6 +448,7 @@ distance(Lat1, Lon1, Lat2, Lon2, Dis) :-
     Dis is round(Dis1).
 degrees2radians(Deg, Rad) :-
     Rad is Deg*0.0174532925.
+% FIXME: Review if conversion to linear coords are necessary
 linearCoord(IDlocation, X, Y) :-
     location(IDlocation,  (Lat, Lon)),
     geo2linear(Lat, Lon, X, Y).
@@ -499,9 +494,9 @@ sublist2(I, [_|Xs], M, N, Ys) :-
     J is I+1,
     sublist2(J, Xs, M, N, Ys).
 
-split(List,E,P,S):-
-    append(P,S1,List),
-    S1=[E|S],!.
+split(List, E, P, S) :-
+    append(P, S1, List),
+    S1=[E|S], !.
 
 rotate_left(List, Num, Rotated) :-
     length(List, Length),

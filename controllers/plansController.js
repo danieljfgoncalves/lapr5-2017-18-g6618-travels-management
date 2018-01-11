@@ -1,6 +1,8 @@
 var prologworker = require('../services/prologWorker');
 var xmlworker = require('../services/xmlWorker');
-var rootPredicateName = 'planTravel';
+const gaPredicate = 'ga';
+const  gaTwPredicate = 'gatw';
+
 var assertFactName = 'location';
 var request = require('request');
 
@@ -12,42 +14,53 @@ var request = require('request');
 calculatePlan = (req, res) => {
 
     
-    xmlworker.xmlToJson("../utils/xml.xml").then(data => {
+    
         
     if (!req.body.departure) {
         res.status(400).send({"Message":"Departure point must be specified."});
         return;
     }
 
-    if (!req.body.pharmacies || req.body.pharmacies.length < 1) {
-        res.status(400).send({"Message":"Must have at least one pharmacy."});
+    if (!req.body.pharmacies || req.body.pharmacies.length < 2) {
+        res.status(400).send({"Message":"Must have at least two pharmacies."});
         return;
     }
     if(req.body.url)
-        res.status(200).send({"Message":"Plan calculation requested with success. Should respond within moments."});
-    var departure = '(' + req.body.departure.name + ',' + req.body.departure.latitude +
-                    ',' + req.body.departure.longitude + ',' + req.body.departure.time +
+         res.status(200).send({"Message":"Plan calculation requested with success. Should respond within moments."});
+    var departure = '(' + req.body.departure.name.toLowerCase().replace(/ /g,"_") + ',' + '(' + req.body.departure.latitude +
+                    ',' + req.body.departure.longitude + ')' + ',' + req.body.departure.time +
                     ')';
     
     var pharmacies = '[';
     req.body.pharmacies.forEach( (phar, idx, array) => {
-        pharmacies += '(' + phar.name + ',' + phar.latitude +
-                      ',' + phar.longitude + ',' + phar.limitTime +
+        pharmacies += '(' + phar.name.toLowerCase().replace(/ /g,"_") + ',' + '('+ phar.latitude +
+                      ',' + phar.longitude + ')' + ',' + phar.time +
                       ')';
 
         pharmacies += idx == (array.length-1) ? ']' : ',';
     });
 
     parsedPrologArray = departure + ',' + pharmacies;
-    
-    result = prologworker.callPredicateSingleResult(rootPredicateName, parsedPrologArray);
+    var algorithm_name = req.body.algorithm;
+    if(!algorithm_name)
+    {
+        algorithm_name = gaTwPredicate;
+    }
+    switch(algorithm_name)
+    {
+        case gaPredicate:
+            result = prologworker.callPredicateSingleResult(gaPredicate, parsedPrologArray);
+        break;
+           
+        default:
+            result = prologworker.callPredicateSingleResult(gaTwPredicate, parsedPrologArray);
+    }
+
     if(!req.body.url)
         res.status(200).json(result);
     else
         returnParsedPlan(req.body.url,result);
         
-       
-    });
 
     return;
 }

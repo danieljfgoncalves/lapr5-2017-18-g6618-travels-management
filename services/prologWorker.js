@@ -1,10 +1,8 @@
 var swipl = require('swipl');
 var _ = require('underscore');
 
-swipl.initialise();
 
-swipl.call('working_directory(_, baseknowledges)');
-swipl.call('consult(planTravel)');
+const rootPredicateName = 'planTravel';
 
 
 /**
@@ -25,21 +23,29 @@ function assertFact(factName,factArgs)
  * @param {*} predicateName The name of the predicate
  * @param {*} predicateArgs  The arguments of the predicate
  */
-function callPredicateSingleResult(predicateName,predicateArgs){
+function callPredicateSingleResult(baseKnowledge,predicateArgs){
     
+    //swipl.initialise();
+    //swipl.call('working_directory(_, baseknowledges)');
+
+    //swipl.cleanup();
+    swipl.call('consult('+baseKnowledge+')');
     var jsonObject = {};
-    var keys = ['VisitedPharmacies' , 'OrderedWaypoints' , 'NonVisitedPharmacies'];
-    console.log(predicateName + '(' + predicateArgs + ',(Visited,Ordered,NonVisited)) .\n\n');
-    result = swipl.call(predicateName + '(' + predicateArgs + ',(Visited,Ordered,NonVisited)) .');
+    var keys = ['Distance','VisitedPharmacies' , 'OrderedWaypoints' , 'NonVisitedPharmacies'];
+    console.log(rootPredicateName + '(' + predicateArgs + ',(Visited,Ordered,NonVisited)) .\n\n');
+    result = swipl.call(rootPredicateName + '(' + predicateArgs + ',(TotalDistance,Visited,Ordered,NonVisited)) .');
     //var json = JSON.stringify(result.NonVisited);
     //console.log(json);
+    var totalDistance = result.TotalDistance;
+    console.log(totalDistance);
     var resultVisited = parsePrologOutput(result.Visited,true,"V");
     var resultOrdered  = parsePrologOutput(result.Ordered,true,"O");
     var resultNonVisited = parsePrologOutput(result.NonVisited,true,"NV");
    
-    jsonObject[keys[0]] = resultVisited;
-    jsonObject[keys[1]] = resultOrdered;
-    jsonObject[keys[2]]= resultNonVisited;
+    jsonObject[keys[0]] = totalDistance;
+    jsonObject[keys[1]] = resultVisited;
+    jsonObject[keys[2]] = resultOrdered;
+    jsonObject[keys[3]]= resultNonVisited;
 
     return jsonObject;
    
@@ -53,6 +59,7 @@ function callPredicateSingleResult(predicateName,predicateArgs){
  */
 function parsePrologOutput(jsonInput,isHead,whatToParse)
 {
+   
    var output=[];
    if(isHead)
    {
@@ -61,19 +68,35 @@ function parsePrologOutput(jsonInput,isHead,whatToParse)
             switch(whatToParse)
             {
                 case "V":
-                    output.push(jsonInput.head.args[0]);
-                    output.push(jsonInput.head.args[1].args[0]);
-                    output.push(jsonInput.head.args[1].args[1].args[0]);
+                    var obj={
+                        name: jsonInput.head.args[0],
+                        latitude:jsonInput.head.args[1].args[0],
+                        longitude:jsonInput.head.args[1].args[1].args[0],
+                        time:jsonInput.head.args[1].args[1].args[1]
+                    }
+                    output.push(obj);
                     break;
                 case "NV":
-                    output.push(jsonInput.head.args[0]);
-                    output.push(jsonInput.head.args[1].args[0]);
-                    output.push(jsonInput.head.args[1].args[1].args[0]);
+                    var obj={
+                        name: jsonInput.head.args[0],
+                        latitude:jsonInput.head.args[1].args[0],
+                        longitude:jsonInput.head.args[1].args[1].args[0],
+                        time:jsonInput.head.args[1].args[1].args[1]
+                    }
+                    output.push(obj);
                     break;
                 case "O":
-                    output.push(jsonInput.head.args[0]);
-                    output.push(jsonInput.head.args[1]);
+                    var obj={
+                        
+                        
+                        latitude:jsonInput.head.args[0],
+                        longitude:jsonInput.head.args[1]
+                         
+                    }
+                    output.push(obj);
                     break;
+                   
+                  
             }
         }
         catch(e)
