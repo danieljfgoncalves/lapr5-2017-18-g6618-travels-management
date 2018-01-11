@@ -5,6 +5,9 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var xmlworker = require('./services/xmlWorker');
+const logger = require('./logger'); // custom logger to db
+const morgan = require('morgan');
+
 var index = require('./routes/index');
 var users = require('./routes/users');
 var calculatePlan = require('./routes/calculatePlan');
@@ -30,12 +33,17 @@ xmlworker.xmlToPl("./utils/map.xml","./baseknowledges/map.pl").then(()=>{
   app.use('/users', users);
   app.use('/calculatePlan',calculatePlan);
 
+  // *** LOGGING *** //
+  if (app.get('env') != 'test') app.use(logger);
+  if (app.get('env') == 'development') app.use(morgan('dev'));
+
   // catch 404 and forward to error handler
   app.use(function(req, res, next) {
     var err = new Error('Not Found');
     err.status = 404;
     next(err);
   });
+
 
   // error handler
   app.use(function(err, req, res, next) {
