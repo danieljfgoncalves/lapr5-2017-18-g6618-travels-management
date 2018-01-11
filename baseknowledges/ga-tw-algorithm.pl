@@ -1,23 +1,3 @@
-% ########## TESTING KNOWLEDGE BASE ########## %
-% FIXME: remove after testing
-departure(292355485, "Warehouse", (41.2054879,-8.6487163), 480).
-pharmacy(292622149, "Pharm1", (41.2054879,-8.6487163), 700). % Good
-pharmacy(292622257, "Pharm2", (41.2054879,-8.6487163), 550). % Good
-pharmacy(3029190238, "Pharm3", (41.2054879,-8.6487163), 800). % Good
-pharmacy(1295095796, "Pharm4", (41.2054879,-8.6487163), 500). % Good
-pharmacy(292782840, "Pharm5", (41.2054879,-8.6487163), 560). % Good
-pharmacy(3029278619, "Pharm6", (41.2054879,-8.6487163), 800). % Good
-pharmacy(1520378731, "Pharm7", (41.2054879,-8.6487163), 900).
-pharmacy(2232230230, "Pharm8", (41.2054879,-8.6487163), 1000).
-pharmacy(130219240, "Pharm9", (41.2054879,-8.6487163), 1200).
-pharmacy(2232230277, "Pharm10", (41.2054879,-8.6487163), 760).
-pharmacy(278487441, "Pharm11", (41.2054879,-8.6487163), 720).
-pharmacy(3397148312, "Pharm12", (41.2054879,-8.6487163), 800).
-pharmacy(130218795, "Pharm13", (41.2054879,-8.6487163), 540).
-pharmacy(130219244, "Pharm14", (41.2054879,-8.6487163), 700).
-pharmacy(277374296, "Pharm15", (41.2054879,-8.6487163), 1260).
-
-
 % ########## DYNAMIC FACTS ########## %
 % Imports random lib
 :- use_module(library(random)).
@@ -71,12 +51,13 @@ mutation_prob(0.02).
 %
 planTravel( Departure, Pharmacies, Plan ) :-
     assert_departure(Departure),
-    assert_pharmacies(Pharmacies),
+    assert_pharmacies(Pharmacies, NotFound),
     genetic_algorithm(PharmacyIDsRoute, TotalDistance, UnvisitedIDs),
     route_with_waypoints(PharmacyIDsRoute, WaypointIDs),
     route_output(PharmacyIDsRoute,Route),
     waypoints_output(WaypointIDs,Waypoints),
-    unvisited_output(UnvisitedIDs,Unvisited),
+    unvisited_output(UnvisitedIDs,Unvisited1),
+    append(Unvisited1,NotFound,Unvisited),!,
     Plan=(TotalDistance,Route,Waypoints,Unvisited).
 
 % Build Plan Output
@@ -131,20 +112,22 @@ unvisited_output2([ID|Other],Aux,List) :-
 % Check & assert departure location
 assert_departure(Dep) :-
     retractall(departure(_, _, _, _)),
-    Dep=(Name, Lat, Lon, Time),
+    Dep=(Name, (Lat, Lon), Time),
     location(ID,  (Lat, Lon)),
     assertz(departure(ID, Name,  (Lat, Lon), Time)).
 
 % Assert all pharmacies with orders, and list if not found
-assert_pharmacies([], []) :- !.
-assert_pharmacies([Pharmacy|T], NotFound) :-
+assert_pharmacies(PharmacyList, NotFound) :-
     retractall(pharmacy(_, _, _, _)),
-    Pharmacy=(Name, Lat, Lon, Time),
+    assert_pharmacies2(PharmacyList, NotFound).
+assert_pharmacies2([], []) :- !.
+assert_pharmacies2([Pharmacy|T], NotFound) :-
+    Pharmacy=(Name, (Lat, Lon), Time),
     location(ID,  (Lat, Lon)),
     assertz(pharmacy(ID, Name,  (Lat, Lon), Time)),
-    assert_pharmacies(T, NotFound), !.
-assert_pharmacies([Pharmacy|T], [Pharmacy|NotFound]) :-
-    assert_pharmacies(T, NotFound).
+    assert_pharmacies2(T, NotFound), !.
+assert_pharmacies2([Pharmacy|T], [Pharmacy|NotFound]) :-
+    assert_pharmacies2(T, NotFound).
 
 % Counts all pharmacy facts
 count_pharmacies(Num) :-
