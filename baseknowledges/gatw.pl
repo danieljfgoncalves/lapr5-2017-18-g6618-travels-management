@@ -15,6 +15,8 @@
 :- (dynamic location/2).
 % connection(from (NodeID), to (NodeID)) -> unidirected
 :- (dynamic connection/2).
+% real population used
+:- (dynamic population2/1).
 
 % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ %
 
@@ -59,6 +61,7 @@ planTravel( Departure, Pharmacies, Plan ) :-
     notfound_output(NotFound,NotFound1),
     append(Unvisited1,NotFound1,Unvisited),!,
     Plan=(TotalDistance,Route,Waypoints,Unvisited).
+planTravel( _, _, ('NA','NA','NA','NA') ).
 
 notfound_output(NotFound, New) :-
     notfound_output2(NotFound,[],New).
@@ -162,6 +165,7 @@ genetic_algorithm(Route, Distance, Unvisited) :-
     count_pharmacies(N),
     retractall(pharmacies(_)),
     assert(pharmacies(N)),
+    verify_pop_size(N),
     generate_pop(Pop),
     evaluate_pop(Pop, PopEv),
     sort(PopEv, PopOrd),
@@ -174,9 +178,23 @@ genetic_algorithm(Route, Distance, Unvisited) :-
     append([Dep|Visited], [Dep], Route),
     calculate_route_distance(Route, Distance), !.
 
+% Verifies if # of possible solutions > population, if not switch population with # of possible solutions
+verify_pop_size(NumPharm) :-
+    factorial(NumPharm, F),
+    population(P),
+    (
+        F>P,!,
+        Pop = P
+        ;
+        Pop = F
+    ),
+    retractall(population2(_)),
+    assert(population2(Pop)),
+    !.
+
 % Generate population of individuals (random solutions)
 generate_pop(Pop) :-
-    population(SizePop),
+    population2(SizePop),
     % ########## Generate 1Ind from the greedy heuristic ########## %
     greedy_individual(GreedyInd),
     % ########## Generate 1Ind from the greedy heuristic ########## %
@@ -321,7 +339,7 @@ random_indexes(P1, P2) :-
 
 % Select the N Fittest Population Only.
 fit_selection(OrdPop, FitPop) :-
-    population(Size),
+    population2(Size),
     sublist(OrdPop, 0, Size-1, FitPop).
 
 % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ %
@@ -493,6 +511,15 @@ km_per_hour_to_meter_per_minute(KmH, MMin) :-
 % ---- MATH FUNCTIONS ---- %
 mod(Num1, Num2, NumR) :-
     NumR is Num1-Num1 div Num2*Num2.
+
+factorial(Num, Result):-
+    factorial2(Num, Result),!.
+factorial2(0, 1).
+factorial2(N, F):-
+    N > 0,
+    N1 is N - 1,
+    factorial(N1, F1),
+    F is N * F1.
 
 % ---- DATA STRUCTURES FUNCTION ---- %
 sublist(L, M, N, S) :-

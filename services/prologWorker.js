@@ -25,19 +25,18 @@ function assertFact(factName,factArgs)
  */
 function callPredicateSingleResult(baseKnowledge,predicateArgs){
     
-    //swipl.initialise();
-    //swipl.call('working_directory(_, baseknowledges)');
-
-    //swipl.cleanup();
     swipl.call('consult('+baseKnowledge+')');
     var jsonObject = {};
     var keys = ['Distance','VisitedPharmacies' , 'OrderedWaypoints' , 'NonVisitedPharmacies'];
     console.log(rootPredicateName + '(' + predicateArgs + ',(Visited,Ordered,NonVisited)) .\n\n');
     result = swipl.call(rootPredicateName + '(' + predicateArgs + ',(TotalDistance,Visited,Ordered,NonVisited)) .');
-    //var json = JSON.stringify(result.NonVisited);
-    //console.log(json);
+
     var totalDistance = result.TotalDistance;
-    console.log(totalDistance);
+
+    if(totalDistance == 'NA') {
+        return {error:'Invalid Predicate'};
+    }
+
     var resultVisited = parsePrologOutput(result.Visited,true,"V");
     var resultOrdered  = parsePrologOutput(result.Ordered,true,"O");
     var resultNonVisited = parsePrologOutput(result.NonVisited,true,"NV");

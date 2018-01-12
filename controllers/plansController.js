@@ -12,9 +12,6 @@ var request = require('request');
  * @param {*} res the http result
  */
 calculatePlan = (req, res) => {
-
-    
-    
         
     if (!req.body.departure) {
         res.status(400).send({"Message":"Departure point must be specified."});

@@ -15,6 +15,8 @@
 :- (dynamic location/2).
 % connection(from (NodeID), to (NodeID)) -> unidirected
 :- (dynamic connection/2).
+% real population used
+:- (dynamic population2/1).
 
 % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ %
 
@@ -59,6 +61,7 @@ planTravel(Departure, Pharmacies, Plan) :-
     waypoints_output(WaypointIDs, Waypoints),
     notfound_output(NotFound,NotFound1),
     Plan=(TotalDistance, Route, Waypoints, NotFound1),!.
+planTravel(_, _,  ('NA', 'NA', 'NA', 'NA')).
 
 
 %Treat not found output
@@ -158,21 +161,33 @@ genetic_algorithm(Route, Distance) :-
     count_pharmacies(N),
     retractall(pharmacies(_)),
     assert(pharmacies(N)),
+    verify_pop_size(N),
     generate_pop(Pop),
     evaluate_pop(Pop, PopEv),
     sort(PopEv, PopOrd),
-    fit_selection(PopOrd,FitPop),
+    fit_selection(PopOrd, FitPop),
     generations(NG),
     generate_gen(NG, FitPop, Best),
     Best=_*RouteAux,
-    delete(RouteAux,'*',Route1),
-    departure(Dep,_,_,_),
+    delete(RouteAux, *, Route1),
+    departure(Dep, _, _, _),
     append([Dep|Route1], [Dep], Route),
-    calculate_route_distance(Route,Distance), !.
+    calculate_route_distance(Route, Distance), !.
+
+% Verifies if # of possible solutions > population, if not switch population with # of possible solutions
+verify_pop_size(NumPharm) :-
+    factorial(NumPharm, F),
+    population(P),
+    (   F>P, !,
+        Pop=P
+    ;   Pop=F
+    ),
+    retractall(population2(_)),
+    assert(population2(Pop)), !.
 
 % Generate population of individuals (random solutions)
 generate_pop(Pop) :-
-    population(SizePop),
+    population2(SizePop),
     % ########## Generate 1Ind from the greedy heuristic ########## %
     greedy_individual(GreedyInd),
     % ########## Generate 1Ind from the greedy heuristic ########## %
@@ -312,7 +327,7 @@ random_indexes(P1, P2, NP) :-
 
 % Select the N Fittest Population Only.
 fit_selection(OrdPop,FitPop) :-
-    population(Size),
+    population2(Size),
     sublist(OrdPop,0,Size-1,FitPop).
 
 % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ %
