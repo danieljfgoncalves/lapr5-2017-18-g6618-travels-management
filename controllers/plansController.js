@@ -29,7 +29,17 @@ calculatePlan = (req, res) => {
                     ')';
     
     var pharmacies = '[';
+    var morn = noon = 0;
+    
     req.body.pharmacies.forEach( (phar, idx, array) => {
+        if(!phar.time)
+        {
+            phar.time = 10000;
+        }
+
+        morn += (phar.time < 720)?1:0;
+        noon += (phar.time >= 720)?1:0;
+
         pharmacies += '(' + phar.name.toLowerCase().replace(/ /g,"_") + ',' + '('+ phar.latitude +
                       ',' + phar.longitude + ')' + ',' + phar.time +
                       ')';
@@ -39,13 +49,14 @@ calculatePlan = (req, res) => {
 
     parsedPrologArray = departure + ',' + pharmacies;
     var algorithm_name = req.body.algorithm;
-    if(!algorithm_name)
+    if(!algorithm_name ||  (morn < 3 || noon < 3))
     {
         algorithm_name = gaTwPredicate;
     }
     switch(algorithm_name)
     {
         case gaPredicate:
+           
             result = prologworker.callPredicateSingleResult(gaPredicate, parsedPrologArray);
         break;
            
