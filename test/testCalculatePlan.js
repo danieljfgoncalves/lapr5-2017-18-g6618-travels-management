@@ -74,4 +74,54 @@ describe('  ***  TRAVELS MANAGEMENT TESTS  ***  ', function () {
             
     
         });
+
+        describe('calculatePlan', function () {
+            it('should have all pharmacies in visited array', function(done) {
+                var pharmacies = pharmaciesMock.allVisitedPharmacies;
+                this.timeout(0);
+                chai.request(server).post('/calculatePlan').send(pharmacies).end(function (err, res) {
+
+                    var realLength = 2 + pharmacies.pharmacies.length;
+                    res.body.VisitedPharmacies.should.have.length(realLength);
+                    done();
+                    });
+              });
+            
+    
+        });
+
+        describe('calculatePlan', function () {
+            it('should have one pharmacy in nonvisited', function(done) {
+                var pharmacies = pharmaciesMock.timeRestrictionB4DeparturePharmacies;
+                this.timeout(0);
+                chai.request(server).post('/calculatePlan').send(pharmacies).end(function (err, res) {
+
+                    assert.ok(res.body.NonVisitedPharmacies[0].name == pharmacies.pharmacies[0].name);
+                    assert.ok(res.body.NonVisitedPharmacies[0].latitude == pharmacies.pharmacies[0].latitude);
+                    assert.ok(res.body.NonVisitedPharmacies[0].longitude== pharmacies.pharmacies[0].longitude);
+                    done();
+                    });
+              });
+            
+    
+        });
+
+        describe('calculatePlan', function () {
+            it('should have departure as first and last node', function(done) {
+                var pharmacies = pharmaciesMock.allVisitedPharmacies;
+                this.timeout(0);
+                chai.request(server).post('/calculatePlan').send(pharmacies).end(function (err, res) {
+
+                    assert.ok(res.body.VisitedPharmacies[0].name == pharmacies.departure.name.toLowerCase());
+                    assert.ok(res.body.VisitedPharmacies[0].latitude == pharmacies.departure.latitude);
+                    assert.ok(res.body.VisitedPharmacies[0].longitude== pharmacies.departure.longitude);
+                    assert.ok(res.body.VisitedPharmacies[res.body.VisitedPharmacies.length - 1].name == pharmacies.departure.name.toLowerCase());
+                    assert.ok(res.body.VisitedPharmacies[res.body.VisitedPharmacies.length - 1].latitude == pharmacies.departure.latitude);
+                    assert.ok(res.body.VisitedPharmacies[res.body.VisitedPharmacies.length - 1].longitude== pharmacies.departure.longitude);
+                    done();
+                    });
+              });
+            
+    
+        });
     });

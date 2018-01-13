@@ -141,3 +141,70 @@ exports.notEnoughPharmacies = {
     
  ]
 };
+
+exports.allVisitedPharmacies = 
+{
+    "departure":
+        {
+        "name":"Warehouse",
+        "latitude":41.2343045,
+        "longitude":-8.6200599,
+        "time":"480"
+        },
+    "pharmacies":
+    [
+        {
+            "name":"pharmacy_good_health",
+            "latitude":41.2040539,
+            "longitude":-8.6482001,
+            "time":"1000"
+        },
+        {
+            "name":"pharmacy_fresh_medicine",
+            "latitude":41.2208412,
+            "longitude":-8.6270177,
+            "time":"860"
+            
+        },
+        {
+            "name":"pharmacy_green_rock",
+            "latitude":41.1984097,
+            "longitude":-8.6814919,
+            "time":"1200"
+        }
+    ]
+}
+
+exports.timeRestrictionB4DeparturePharmacies = 
+{
+    "departure":
+        {
+        "name":"Warehouse",
+        "latitude":41.2343045,
+        "longitude":-8.6200599,
+        "time":"480"
+        },
+    "pharmacies":
+    [
+        {
+            "name":"pharmacy_good_health",
+            "latitude":41.2040539,
+            "longitude":-8.6482001,
+            "time":"450"
+        },
+        {
+            "name":"pharmacy_fresh_medicine",
+            "latitude":41.2208412,
+            "longitude":-8.6270177,
+            "time":"860"
+            
+        },
+        {
+            "name":"pharmacy_green_rock",
+            "latitude":41.1984097,
+            "longitude":-8.6814919,
+            "time":"1200"
+        }
+    ]
+}
+
