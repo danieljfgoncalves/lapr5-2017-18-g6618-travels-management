@@ -85,7 +85,8 @@ returnParsedPlan = (url, plan) => {
         url: url,
         headers: {'content-type' : 'application/json'},
         method: 'POST',
-        json: {plan: plan}
+        body: plan,
+        json: true
     };
 
     request(options, function(error, res, body) {
